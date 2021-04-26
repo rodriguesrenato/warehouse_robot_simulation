@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- The GazeboSpawnObject node -->
+  <node name="GazeboSpawnObject" type="GazeboSpawnObject" pkg="deliver_robot_simulation" output="screen">
+  </node>
+
+</launch>

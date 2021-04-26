@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/renato/catkin_ws/src/deliver-robot-simulation/build/devel/setup.sh
