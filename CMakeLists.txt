@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(deliver_robot_simulation)
+project(delivery_robot_simulation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES deliver-robot-simulation
+#  LIBRARIES delivery-robot-simulation
 #  CATKIN_DEPENDS gazebo_ros roscpp std_msgs
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/deliver-robot-simulation.cpp
+#   src/${PROJECT_NAME}/delivery-robot-simulation.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,7 +135,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/deliver-robot-simulation_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/delivery-robot-simulation_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -199,7 +199,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_deliver-robot-simulation.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_delivery-robot-simulation.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -209,4 +209,4 @@ include_directories(
 
 add_executable(GazeboSpawnObject src/GazeboSpawnObject.cpp)
 target_link_libraries(GazeboSpawnObject ${catkin_LIBRARIES})
-#add_dependencies(GazeboSpawnObject deliver_robot_simulator_generate_messages_cpp)
+#add_dependencies(GazeboSpawnObject delivery_robot_simulator_generate_messages_cpp)

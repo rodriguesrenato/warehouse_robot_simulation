@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>deliver_robot_simulation</name>
+  <name>delivery_robot_simulation</name>
   <version>0.0.0</version>
-  <description>The deliver-robot-simulation package</description>
+  <description>The delivery_robot_simulation package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

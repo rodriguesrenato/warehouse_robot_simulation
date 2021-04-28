@@ -1,0 +1,253 @@
+<?xml version='1.0'?>
+
+<robot name="delivery_robot"
+  xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Define general robot properties -->
+  <xacro:property name="base_chassis_mass" value="15"/>
+  <xacro:property name="base_chassis_length" value="0.5"/>
+  <xacro:property name="base_chassis_width" value="0.4"/>
+  <xacro:property name="base_chassis_height" value="0.15"/>
+
+  <xacro:property name="wheel_radius" value="0.08"/>
+  <xacro:property name="wheel_length" value="0.02"/>
+  <xacro:property name="wheel_mass" value="1.0"/>
+
+  <xacro:property name="caster_radius" value="${(wheel_radius-base_chassis_height/4)/2}"/>
+  <xacro:property name="caster_mass" value="0.1"/>
+
+  <!-- Define inertia macros  -->
+  <xacro:macro name="cuboid_inertia" params="m x y z">
+    <inertia ixx="${m*(y*y+z*z)/12}" ixy = "0" ixz = "0" iyy="${m*(x*x+z*z)/12}" iyz = "0" izz="${m*(x*x+y*y)/12}" />
+  </xacro:macro>
+
+  <xacro:macro name="cylinder_inertia" params="m r l">
+    <inertia ixx="${m*(3*r*r+l*l)/12}" ixy = "0" ixz = "0" iyy="${m*(3*r*r+l*l)/12}" iyz = "0" izz="${m*r*r/2}" />
+  </xacro:macro>
+
+  <xacro:macro name="sphere_inertia" params="m r">
+    <inertia ixx="${2*m*r*r/5}" ixy = "0" ixz = "0" iyy="${2*m*r*r/5}" iyz = "0" izz="${2*m*r*r/5}" />
+  </xacro:macro>
+
+
+  <!-- Define a wheel macro -->
+  <xacro:macro name="wheel" params="position_name direction_factor">
+    <link name='${position_name}_wheel'>
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <origin xyz="0.0 0 0" rpy=" 0 1.5707 1.5707"/>
+        <xacro:cylinder_inertia r="${wheel_radius}" m="${wheel_mass}" l="${wheel_length}" />
+      </inertial>
+
+      <collision name='collision'>
+        <origin xyz="0.0 0 0" rpy=" 0 1.5707 1.5707"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+      </collision>
+
+      <visual name='right_wheel_visual'>
+        <origin xyz="0.0 0 0" rpy=" 0 1.5707 1.5707"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+        </geometry>
+      </visual>
+    </link>
+
+    <joint type="continuous" name="${position_name}_wheel_hinge">
+      <origin xyz="0 ${direction_factor*((base_chassis_width + wheel_length)/2 +0.005)} ${-1.0*base_chassis_height/4}" rpy="0 0 0"/>
+      <child link="${position_name}_wheel"/>
+      <parent link="base_chassis"/>
+      <axis xyz="0 1 0" rpy="0 0 0"/>
+      <dynamics damping="0" friction="1.0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Define caster macro -->
+  <xacro:macro name="ball_caster" params="position_name direction_x_factor direction_y_factor">
+    <link name='${position_name}_caster'>
+      <inertial>
+        <mass value="${caster_mass}"/>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <xacro:sphere_inertia r="${caster_radius}" m="${caster_mass}" />
+      </inertial>
+
+      <collision name='collision'>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_radius}" />
+        </geometry>
+      </collision>
+
+      <visual name='right_caster_visual'>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <geometry>
+          <sphere radius="${caster_radius}" />
+        </geometry>
+      </visual>
+    </link>
+
+    <joint type="continuous" name="${position_name}_caster_hinge">
+      <origin xyz="${direction_x_factor*((base_chassis_length - caster_radius)/2 -0.005)} ${direction_y_factor*((base_chassis_width - caster_radius)/2 -0.005)} ${-1.0*(base_chassis_height/2+caster_radius)}" rpy="0 0 0"/>
+      <child link="${position_name}_caster"/>
+      <parent link="base_chassis"/>
+      <axis xyz="1 1 1" rpy="0 0 0"/>
+      <dynamics damping="0" friction="0"/>
+    </joint>
+  </xacro:macro>
+
+  <link name="robot_footprint"></link>
+
+  <!-- Include gazebo properties -->
+  <xacro:include filename="$(find delivery_robot_simulation)/models/urdf/delivery_robot.gazebo" />
+
+  <joint name="robot_footprint_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="robot_footprint"/>
+    <child link="base_chassis" />
+  </joint>
+
+  <link name='base_chassis'>
+    <pose>0 0 0.12 0 0 0</pose>
+
+    <inertial>
+      <mass value="${base_chassis_mass}"/>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <xacro:cuboid_inertia m="${base_chassis_mass}" x="${base_chassis_length}" y="${base_chassis_width}" z="${base_chassis_height}" />
+    </inertial>
+
+    <collision name='collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="${base_chassis_length} ${base_chassis_width} ${base_chassis_height}"/>
+      </geometry>
+    </collision>
+
+    <visual name='chassis_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="${base_chassis_length} ${base_chassis_width} ${base_chassis_height}"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- ### WHEELS ### -->
+
+  <xacro:wheel position_name="left" direction_factor="1"/>
+  <xacro:wheel position_name="right" direction_factor="-1"/>
+
+  <!-- Ball caster definitions -->
+  <xacro:ball_caster position_name="front_left" direction_x_factor="1" direction_y_factor="1"/>
+  <xacro:ball_caster position_name="front_right" direction_x_factor="1" direction_y_factor="-1"/>
+  <xacro:ball_caster position_name="back_left" direction_x_factor="-1" direction_y_factor="1"/>
+  <xacro:ball_caster position_name="back_right" direction_x_factor="-1" direction_y_factor="-1"/>
+
+  <!-- 
+  <link name='base_hokuyo'>
+    <inertial>
+      <mass value="0.01"/>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <inertia ixx="0.000016667" ixy = "0" ixz = "0" iyy="0.00004167" iyz = "0" izz="0.00004167" />
+    </inertial>
+
+    <collision name='collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="0.2 0.1 0.1"/>
+      </geometry>
+    </collision>
+
+    <visual name='sup_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="0.2 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint type="fixed" name="base_hokuyo_joint">
+    <origin xyz="0 0 0.12" rpy="0 0 0"/>
+    <child link="base_hokuyo"/>
+    <parent link="base_chassis"/>
+  </joint>
+-->
+
+
+
+  <!-- ### CAMERA ### -->
+
+  <link name="camera_link">
+
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0.0 0 0" rpy=" 0 0 0"/>
+      <xacro:cuboid_inertia m="0.1" x="0.05" y="0.05" z="0.05" />
+      <!-- <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> -->
+    </inertial>
+
+    <collision name='camera_collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+    </collision>
+
+    <visual name='camera_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="camera_link_optical">
+  </link>
+
+  <joint type="fixed" name="camera_joint">
+    <origin xyz="${base_chassis_length/2+0.025} 0 0.075" rpy="0 0 0"/>
+    <child link="camera_link"/>
+    <parent link="base_chassis"/>
+    <axis xyz="0 1 0" rpy="0 0 0.02"/>
+  </joint>
+
+  <joint name="camera_optical_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="-1.5707 0 -1.5707"/>
+    <parent link="camera_link"/>
+    <child link="camera_link_optical"/>
+  </joint>
+
+
+  <!-- ### LIDAR ### -->
+
+  <link name="hokuyo">
+    <inertial>
+      <mass value="0.00001"/>
+      <origin xyz="0.0 0 0" rpy=" 0 0 0"/>
+      <xacro:cuboid_inertia m="0.00001" x="0.1" y="0.1" z="0.1" />
+      <!-- <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> -->
+    </inertial>
+
+    <collision name='hokuyo_collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </collision>
+
+    <visual name='hokuyo_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <mesh filename="package://delivery_robot_simulation/models/meshes/hokuyo.dae"/>
+      </geometry>
+    </visual>
+
+  </link>
+
+  <joint type="fixed" name="hokuyo_joint">
+    <origin xyz="${base_chassis_length/2-0.05} 0 ${base_chassis_height/2+0.05}" rpy="0 0 0"/>
+    <child link="hokuyo"/>
+    <parent link="base_chassis"/>
+    <axis xyz="0 1 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

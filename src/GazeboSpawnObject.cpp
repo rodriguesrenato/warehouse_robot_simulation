@@ -34,10 +34,10 @@ void spawn_object_callback(const std_msgs::String &str)
     geometry_msgs::Pose pose;
     pose.position.x = 1;
     pose.position.y = 1;
-    pose.position.z = 1;
+    pose.position.z = 0.25;
     srv.request.initial_pose = pose;
 
-    srv.request.model_xml = ReadFile("/home/renato/catkin_ws/src/deliver-robot-simulation/models/coke_can.sdf");
+    srv.request.model_xml = ReadFile("/home/renato/catkin_ws/src/deliver_robot_simulation/models/box/model.sdf");
     srv.request.reference_frame = "world";
 
     if (!client.call(srv))

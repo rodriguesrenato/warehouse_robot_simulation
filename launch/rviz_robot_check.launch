@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- Launch other relevant files-->
+  <include file="$(find delivery_robot_simulation)/launch/robot_description.launch"/>
+
+  <!-- Launch Rviz with predefined configuration for navigate -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find delivery_robot_simulation)/rvizConfig/robot_check.rviz"/>
+</launch>
