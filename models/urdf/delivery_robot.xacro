@@ -16,6 +16,9 @@
   <xacro:property name="caster_radius" value="${(wheel_radius-base_chassis_height/4)/2}"/>
   <xacro:property name="caster_mass" value="0.1"/>
 
+  <!-- Include gazebo properties -->
+  <xacro:include filename="$(find delivery_robot_simulation)/models/urdf/delivery_robot.gazebo" />
+
   <!-- Define inertia macros  -->
   <xacro:macro name="cuboid_inertia" params="m x y z">
     <inertia ixx="${m*(y*y+z*z)/12}" ixy = "0" ixz = "0" iyy="${m*(x*x+z*z)/12}" iyz = "0" izz="${m*(x*x+y*y)/12}" />
@@ -46,7 +49,7 @@
         </geometry>
       </collision>
 
-      <visual name='right_wheel_visual'>
+      <visual name='${position_name}_wheel_visual'>
         <origin xyz="0.0 0 0" rpy=" 0 1.5707 1.5707"/>
         <geometry>
           <cylinder radius="${wheel_radius}" length="${wheel_length}" />
@@ -79,7 +82,7 @@
         </geometry>
       </collision>
 
-      <visual name='right_caster_visual'>
+      <visual name='${position_name}_caster_visual'>
         <origin xyz="0 0 0" rpy=" 0 0 0"/>
         <geometry>
           <sphere radius="${caster_radius}" />
@@ -96,10 +99,41 @@
     </joint>
   </xacro:macro>
 
-  <link name="robot_footprint"></link>
+  <!-- Define a container wall macro -->
+  <xacro:macro name="container_wall" params="wall_name wall_mass wall_thick wall_height is_y is_x direction_x_factor direction_y_factor">
+    <link name='${wall_name}_container_side'>
+      <pose>0 0 0 0 0 0</pose>
 
-  <!-- Include gazebo properties -->
-  <xacro:include filename="$(find delivery_robot_simulation)/models/urdf/delivery_robot.gazebo" />
+      <inertial>
+        <mass value="${wall_mass}"/>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <xacro:cuboid_inertia m="${wall_mass}" x="${is_y*wall_thick + is_x*base_chassis_length}" y="${is_x*wall_thick + is_y*base_chassis_width}" z="${wall_height}" />
+      </inertial>
+
+      <collision name='collision'>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <geometry>
+          <box size="${is_y*wall_thick + is_x*base_chassis_length} ${is_x*wall_thick + is_y*base_chassis_width} ${wall_height}"/>
+        </geometry>
+      </collision>
+
+      <visual name='base_chassis_visual'>
+        <origin xyz="0 0 0" rpy=" 0 0 0"/>
+        <geometry>
+          <box size="${is_y*wall_thick + is_x*base_chassis_length} ${is_x*wall_thick + is_y*base_chassis_width} ${wall_height}"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint type="fixed" name="${wall_name}_container_side_hinge">
+      <origin xyz="${direction_x_factor*((base_chassis_length - wall_thick)/2)} ${direction_y_factor*((base_chassis_width - wall_thick)/2)} ${((base_chassis_height+wall_height)/2)}" rpy="0 0 0"/>
+      <child link="${wall_name}_container_side"/>
+      <parent link="base_chassis"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Robot definitions -->
+  <link name="robot_footprint"></link>
 
   <joint name="robot_footprint_joint" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0" />
@@ -108,7 +142,7 @@
   </joint>
 
   <link name='base_chassis'>
-    <pose>0 0 0.12 0 0 0</pose>
+    <pose>0 0 0 0 0 0</pose>
 
     <inertial>
       <mass value="${base_chassis_mass}"/>
@@ -123,7 +157,7 @@
       </geometry>
     </collision>
 
-    <visual name='chassis_visual'>
+    <visual name='base_chassis_visual'>
       <origin xyz="0 0 0" rpy=" 0 0 0"/>
       <geometry>
         <box size="${base_chassis_length} ${base_chassis_width} ${base_chassis_height}"/>
@@ -131,49 +165,25 @@
     </visual>
   </link>
 
-  <!-- ### WHEELS ### -->
+
+
+
+  <!-- Wheels definitions -->
 
   <xacro:wheel position_name="left" direction_factor="1"/>
   <xacro:wheel position_name="right" direction_factor="-1"/>
 
-  <!-- Ball caster definitions -->
+  <!-- Ball casters definitions -->
   <xacro:ball_caster position_name="front_left" direction_x_factor="1" direction_y_factor="1"/>
   <xacro:ball_caster position_name="front_right" direction_x_factor="1" direction_y_factor="-1"/>
   <xacro:ball_caster position_name="back_left" direction_x_factor="-1" direction_y_factor="1"/>
   <xacro:ball_caster position_name="back_right" direction_x_factor="-1" direction_y_factor="-1"/>
 
-  <!-- 
-  <link name='base_hokuyo'>
-    <inertial>
-      <mass value="0.01"/>
-      <origin xyz="0 0 0" rpy=" 0 0 0"/>
-      <inertia ixx="0.000016667" ixy = "0" ixz = "0" iyy="0.00004167" iyz = "0" izz="0.00004167" />
-    </inertial>
-
-    <collision name='collision'>
-      <origin xyz="0 0 0" rpy=" 0 0 0"/>
-      <geometry>
-        <box size="0.2 0.1 0.1"/>
-      </geometry>
-    </collision>
-
-    <visual name='sup_visual'>
-      <origin xyz="0 0 0" rpy=" 0 0 0"/>
-      <geometry>
-        <box size="0.2 0.1 0.1"/>
-      </geometry>
-    </visual>
-  </link>
-
-  <joint type="fixed" name="base_hokuyo_joint">
-    <origin xyz="0 0 0.12" rpy="0 0 0"/>
-    <child link="base_hokuyo"/>
-    <parent link="base_chassis"/>
-  </joint>
--->
-
-
-
+  <!-- Container definitions -->
+  <xacro:container_wall wall_name="left" wall_mass="0.01" wall_thick="0.01" wall_height="0.1" is_y="0" is_x="1" direction_x_factor="0" direction_y_factor="1" />
+  <xacro:container_wall wall_name="right" wall_mass="0.01" wall_thick="0.01" wall_height="0.1" is_y="0" is_x="1" direction_x_factor="0" direction_y_factor="-1" />
+  <xacro:container_wall wall_name="front" wall_mass="0.01" wall_thick="0.1" wall_height="0.1" is_y="1" is_x="0" direction_x_factor="1" direction_y_factor="0" />
+  <xacro:container_wall wall_name="back" wall_mass="0.01" wall_thick="0.01" wall_height="0.1" is_y="1" is_x="0" direction_x_factor="-1" direction_y_factor="0" />
   <!-- ### CAMERA ### -->
 
   <link name="camera_link">
@@ -182,7 +192,6 @@
       <mass value="0.1"/>
       <origin xyz="0.0 0 0" rpy=" 0 0 0"/>
       <xacro:cuboid_inertia m="0.1" x="0.05" y="0.05" z="0.05" />
-      <!-- <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> -->
     </inertial>
 
     <collision name='camera_collision'>
@@ -192,7 +201,7 @@
       </geometry>
     </collision>
 
-    <visual name='camera_visual'>
+    <visual name='camera_link_visual'>
       <origin xyz="0 0 0" rpy=" 0 0 0"/>
       <geometry>
         <box size="0.05 0.05 0.05"/>
@@ -204,7 +213,7 @@
   </link>
 
   <joint type="fixed" name="camera_joint">
-    <origin xyz="${base_chassis_length/2+0.025} 0 0.075" rpy="0 0 0"/>
+    <origin xyz="${base_chassis_length/2+0.025} 0 ${base_chassis_height/2-0.025}" rpy="0 0 0"/>
     <child link="camera_link"/>
     <parent link="base_chassis"/>
     <axis xyz="0 1 0" rpy="0 0 0.02"/>
@@ -224,7 +233,6 @@
       <mass value="0.00001"/>
       <origin xyz="0.0 0 0" rpy=" 0 0 0"/>
       <xacro:cuboid_inertia m="0.00001" x="0.1" y="0.1" z="0.1" />
-      <!-- <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" /> -->
     </inertial>
 
     <collision name='hokuyo_collision'>
@@ -244,7 +252,7 @@
   </link>
 
   <joint type="fixed" name="hokuyo_joint">
-    <origin xyz="${base_chassis_length/2-0.05} 0 ${base_chassis_height/2+0.05}" rpy="0 0 0"/>
+    <origin xyz="${base_chassis_length/2-0.05} 0 ${base_chassis_height/2+0.05+0.1}" rpy="0 0 0"/>
     <child link="hokuyo"/>
     <parent link="base_chassis"/>
     <axis xyz="0 1 0" rpy="0 0 0"/>
