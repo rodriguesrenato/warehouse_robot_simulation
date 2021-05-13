@@ -10,7 +10,8 @@
 #include <math.h>
 
 // Define a global client that can request services
-ros::ServiceClient client;
+ros::ServiceClient spawnSrv;
+ros::ServiceClient removeSrv;
 
 static std::string ReadFile(const std::string &path)
 {   
@@ -24,6 +25,15 @@ static std::string ReadFile(const std::string &path)
 
     return str;
 }
+
+// void remove_object_callback(const std_msgs::String &str)
+// {
+//     gazebo_msgs::SpawnModel srv;
+//     srv.request.model_name = "Coke_can_"+str.data;
+
+//     if (!removeSrv.call(srv))
+//         ROS_ERROR("Failed to call service command_robot");
+// }
 
 // 
 void spawn_object_callback(const std_msgs::String &str)
@@ -40,7 +50,7 @@ void spawn_object_callback(const std_msgs::String &str)
     srv.request.model_xml = ReadFile("/home/renato/catkin_ws/src/deliver_robot_simulation/models/box/model.sdf");
     srv.request.reference_frame = "world";
 
-    if (!client.call(srv))
+    if (!spawnSrv.call(srv))
         ROS_ERROR("Failed to call service command_robot");
 }
 
@@ -51,17 +61,19 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // Define a client service capable of requesting services from command_robot
-    client = n.serviceClient<gazebo_msgs::SpawnModel>("gazebo/spawn_sdf_model");
+    // spawnSrv = n.serviceClient<gazebo_msgs::SpawnModel>("gazebo/spawn_sdf_model");
+    // removeSrv = n.serviceClient<gazebo_msgs::SpawnModel>("gazebo/delete_model");
 
     // Subscribe to /camera/rgb/image_raw topic to read the image data inside the spawn_object_callback function
     ros::Subscriber sub1 = n.subscribe("test/1", 10, spawn_object_callback);
+    // ros::Subscriber sub2 = n.subscribe("test/2", 10, remove_object_callback);
     // std::string ss = "test";
     // spawn_object_callback(std::move(ss));
     // Handle ROS communication events
     ros::spin();
 
     return 0;
-}
+} 
 
 /*
 
