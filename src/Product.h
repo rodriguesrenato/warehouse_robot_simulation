@@ -8,26 +8,19 @@
 
 #include "WarehouseObject.h"
 
-enum ProductType
-{
-    noProduct,
-    productA,
-    productB,
-    productC,
-};
-
-
 class Product : public WarehouseObject
 {
 public:
-    Product(std::string modelName,std::shared_ptr<std::string> model);
+    Product(std::string modelName);
     std::string GetName();
+    std::string GetModelName();
+    bool GetGazeboSpawnStatus();
+    void SetGazeboSpawnStatus(bool status);
 
 private:
-    std::string _productName;
-    std::string _modelName;
-    std::shared_ptr<std::string> _model;
-    bool isSpawned{false};
+    std::string _productName{};
+    std::string _modelName{};
+    bool _isSpawned{false};
 };
 
 #endif

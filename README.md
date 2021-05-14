@@ -74,3 +74,4 @@ Build the warehouse controller node
 
 - https://roboticsbackend.com/ros-include-cpp-header-from-another-package/
 - https://www.youtube.com/watch?v=1bnEdQzf8Yw
+- how to add threads to makefile https://stackoverflow.com/questions/67300703/how-do-i-use-the-pthreads-in-a-ros-c-node
