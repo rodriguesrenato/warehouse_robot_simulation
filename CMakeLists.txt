@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   gazebo_msgs
 )
-
+find_package(Threads REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -207,6 +207,6 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(WarehouseSimulation src/WarehouseSimulation.cpp src/Model.cpp)
-target_link_libraries(WarehouseSimulation ${catkin_LIBRARIES})
+add_executable(WarehouseSimulation src/WarehouseSimulation.cpp src/Model.cpp src/Product.cpp src/Storage.cpp src/WarehouseObject.cpp)
+target_link_libraries(WarehouseSimulation ${catkin_LIBRARIES} Threads::Threads)
 #add_dependencies(WarehouseSimulation delivery_robot_simulator_generate_messages_cpp)
