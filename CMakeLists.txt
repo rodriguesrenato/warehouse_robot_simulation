@@ -207,6 +207,6 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(WarehouseSimulation src/WarehouseSimulation.cpp src/Model.cpp src/Product.cpp src/Storage.cpp src/WarehouseObject.cpp)
+add_executable(WarehouseSimulation src/WarehouseSimulation.cpp src/Model.cpp src/Product.cpp src/Storage.cpp src/Dispatch.cpp src/WarehouseObject.cpp)
 target_link_libraries(WarehouseSimulation ${catkin_LIBRARIES} Threads::Threads)
 #add_dependencies(WarehouseSimulation delivery_robot_simulator_generate_messages_cpp)

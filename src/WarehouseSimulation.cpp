@@ -15,32 +15,87 @@
 
 #include "Model.h"
 #include "Storage.h"
+#include "Dispatch.h"
+#include "Product.h"
 
-std::shared_ptr<Model> modelsG = std::make_shared<Model>(); //"box1","/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-
-void remove_object_callback(const std_msgs::String &str)
+void loadModels(std::shared_ptr<Model> &modelController)
 {
-    std::cout << "remove_object_callback\n";
-    bool res = modelsG->Delete(str.data);
-    std::cout << "res: " << res << std::endl;
+    modelController->Add("productA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productA.sdf");
+    modelController->Add("storageA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/storageA.sdf");
+    modelController->Add("dispatchA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/dispatchA.sdf");
 }
 
-//
-void spawn_object_callback(const std_msgs::String &str)
+void InstatiateWarehouseObjects(std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<Model> modelController, std::string configsDirectory)
 {
-    std::cout << "spawn_object_callback\n";
-    geometry_msgs::Pose pose;
-    pose.position.x = 1;
-    pose.position.y = 1;
-    pose.position.z = 0.25;
+    std::string line;
 
-    bool res = modelsG->Spawn(str.data, "b", pose);
-    std::cout << "res: " << res << std::endl;
-}
+    std::ifstream storagesConfigFs(configsDirectory + "storages");
+    if (storagesConfigFs.is_open())
+    {
+        while (std::getline(storagesConfigFs, line))
+        {
+            if (line[0] == '#')
+            {
+                continue;
+            }
+            std::istringstream linestream(line);
+            std::string storageModel{};
+            std::string productionModel{};
+            geometry_msgs::Pose storagePose{};
+            geometry_msgs::Pose productOutputPose{};
+            std::string psx{};
+            std::string psy{};
+            std::string psz{};
+            std::string ppx{};
+            std::string ppy{};
+            std::string ppz{};
 
-void loadModels(std::shared_ptr<Model> &models)
-{
+            linestream >> storageModel;
 
+            linestream >> productionModel;
+
+            linestream >> psx >> psy >> psz;
+            storagePose.position.x = std::stof(psx);
+            storagePose.position.y = std::stof(psy);
+            storagePose.position.z = std::stof(psz);
+
+            linestream >> ppx >> ppy >> ppz;
+            productOutputPose.position.x = std::stof(ppx);
+            productOutputPose.position.y = std::stof(ppy);
+            productOutputPose.position.z = std::stof(ppz);
+
+            storages.push_back(std::make_shared<Storage>(storageModel, productionModel, storagePose, productOutputPose, modelController));
+        }
+    }
+    storagesConfigFs.close();
+
+    std::ifstream dispatchesConfigFs(configsDirectory + "dispatches");
+    if (dispatchesConfigFs.is_open())
+    {
+        while (std::getline(dispatchesConfigFs, line))
+        {
+            if (line[0] == '#')
+            {
+                continue;
+            }
+            std::istringstream linestream(line);
+            std::string dispatchModel{};
+            geometry_msgs::Pose dispatchPose{};
+            std::string psx{};
+            std::string psy{};
+            std::string psz{};
+
+            linestream >> dispatchModel;
+
+            linestream >> psx >> psy >> psz;
+            dispatchPose.position.x = std::stof(psx);
+            dispatchPose.position.y = std::stof(psy);
+            dispatchPose.position.z = std::stof(psz);
+
+            dispatches.push_back(std::make_shared<Dispatch>(dispatchModel, dispatchPose, modelController));
+        }
+    }
+    dispatchesConfigFs.close();
 }
 
 int main(int argc, char **argv)
@@ -48,39 +103,38 @@ int main(int argc, char **argv)
     // Initialize the WarehouseSimulation node and create a handle to it
     ros::init(argc, argv, "WarehouseSimulation");
     ros::NodeHandle n;
-    
-    std::shared_ptr<Model> models = std::make_shared<Model>();
-    // Load models
-    models->Add("productA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    models->Add("storageA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    models->Add("dropZoneA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    modelsG->Add("a", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    modelsG->Add("b", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    modelsG->Add("c", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/box/model.sdf");
-    
+
+    std::shared_ptr<Model> modelController = std::make_shared<Model>();
+
     // Create Storage objects
     std::vector<std::shared_ptr<Storage>> storages;
+    std::vector<std::shared_ptr<Dispatch>> dispatches;
 
-    geometry_msgs::Pose storagePose;
-    storagePose.position.x = 0.0;
-    storagePose.position.y = -2.0;
-    storagePose.position.z = 1.5;
+    // Load models
+    loadModels(modelController);
 
-    geometry_msgs::Pose productOutputPose;
-    productOutputPose.position.x = 0.0;
-    productOutputPose.position.y = -2.0;
-    productOutputPose.position.z = 0.6;
+    // Instantiate objects from config file
+    InstatiateWarehouseObjects(storages, dispatches, modelController, "/home/renato/catkin_ws/src/delivery_robot_simulation/configs/");
 
-    Storage storage1("storageA",storagePose,productOutputPose,models);
-    // storages.push_back(storage1);
-    storages.push_back(std::make_shared<Storage>("storageA",storagePose,productOutputPose,models));
-    std::for_each(storages.begin(), storages.end(), [](std::shared_ptr<Storage> &s) {
-        s->SetProductionModel("productA");
+    // Add Storage model to simulation and start it
+    std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
+        modelController->Spawn(s->GetName(), s->GetModelName(), s->getPose());
         s->Simulate();
     });
 
-    ros::Subscriber sub1 = n.subscribe("test/1", 10, &Storage::RequestProduct1,&*storages[0]);
-    ros::Subscriber sub2 = n.subscribe("test/2", 10, remove_object_callback);
+    std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
+        modelController->Spawn(d->GetName(), d->GetModelName(), d->getPose());
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    std::cout << "### REQ\n";
+    std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced 
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    std::cout << "### PICK\n";
+    dispatches[0]->PickProduct(std::move(p));
+
+    ros::Subscriber sub11 = n.subscribe("t/1/1", 10, &Storage::RequestProduct1, &*storages[0]);
+    ros::Subscriber sub21 = n.subscribe("t/2/1", 10, &Storage::RequestProduct1, &*storages[1]);
 
     ros::spin();
 
