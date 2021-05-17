@@ -76,6 +76,10 @@ std::unique_ptr<Product> Storage::RequestProduct(std::string productName, int qu
         _modelController->Spawn(product->GetName(), product->GetModelName(), _productOutputPose);
         return std::move(product);
     }
+    // TODO: Add condition variables queue to wait until a product has been produced
+    else{
+        return nullptr;
+    }
 }
 
 void Storage::RequestProduct1(const std_msgs::String &str)

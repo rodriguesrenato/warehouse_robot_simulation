@@ -5,6 +5,7 @@
 #include <gazebo_msgs/SpawnModel.h>
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <ios>
 #include <math.h>
@@ -12,11 +13,15 @@
 #include <thread>
 #include <mutex>
 #include <string>
+#include <future>
 
 #include "Model.h"
 #include "Storage.h"
 #include "Dispatch.h"
 #include "Product.h"
+#include "Robot.h"
+#include "Order.h"
+#include "OrderController.h"
 
 void loadModels(std::shared_ptr<Model> &modelController)
 {
@@ -109,6 +114,8 @@ int main(int argc, char **argv)
     // Create Storage objects
     std::vector<std::shared_ptr<Storage>> storages;
     std::vector<std::shared_ptr<Dispatch>> dispatches;
+    std::vector<std::shared_ptr<Robot>> robots;
+    std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("warehouseOrderController");
 
     // Load models
     loadModels(modelController);
@@ -125,18 +132,33 @@ int main(int argc, char **argv)
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
         modelController->Spawn(d->GetName(), d->GetModelName(), d->getPose());
     });
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::cout << "### REQ\n";
-    std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced 
     
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::cout << "### PICK\n";
-    dispatches[0]->PickProduct(std::move(p));
+    // REQ PICK WORKING DEMO
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // std::cout << "### REQ\n";
+    // std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced 
+    
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // std::cout << "### PICK\n";
+    // dispatches[0]->PickProduct(std::move(p));
+    std::cout << "Spawning RequestNextOrder threads..." << std::endl;
+    std::vector<std::future<std::shared_ptr<Order>>> futures;
+    for (int i = 0; i < 10; ++i)
+    {
+        std::string message = "robot#"+std::to_string(i);
+        futures.emplace_back(std::async(std::launch::async, &OrderController::RequestNextOrder, &*orderController, std::move(message)));
+    }
+
+    ros::Subscriber ordersSubscriber = n.subscribe("warehouse/order/add", 10, &OrderController::AddOrder, &*orderController);
+
 
     ros::Subscriber sub11 = n.subscribe("t/1/1", 10, &Storage::RequestProduct1, &*storages[0]);
     ros::Subscriber sub21 = n.subscribe("t/2/1", 10, &Storage::RequestProduct1, &*storages[1]);
 
     ros::spin();
-
+    
+    std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
+        ftr.wait();
+    });
     return 0;
 }
