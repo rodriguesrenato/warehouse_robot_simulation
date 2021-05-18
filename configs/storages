@@ -1,2 +1,3 @@
+# storage_model_name product_model_name storage_pose_xyz product_output_pose_xyz
 storageA    productA    0.0 -2.0 1.5    0.0 -2.0 0.6
-storageA    productA    4.0 -2.0 1.5    4.0 -2.0 0.6
+storageB    productB    4.0 -2.0 1.5    4.0 -2.0 0.6

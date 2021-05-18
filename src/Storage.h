@@ -30,6 +30,7 @@ public:
     void RequestProduct1(const std_msgs::String &str);
 
     std::unique_ptr<Product> RequestProduct(std::string productName, int quantity);
+    std::unique_ptr<Product> RequestProduct();
     void Simulate();
     void Production();
 

@@ -77,7 +77,27 @@ std::unique_ptr<Product> Storage::RequestProduct(std::string productName, int qu
         return std::move(product);
     }
     // TODO: Add condition variables queue to wait until a product has been produced
-    else{
+    else
+    {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<Product> Storage::RequestProduct()
+{
+    std::cout << "[" << _storageName << "] RequestProduct\n";
+    std::lock_guard<std::mutex> lck(_storageMtx);
+    if (_storedProducts.size() > 0)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::unique_ptr<Product> product = std::move(_storedProducts.back());
+        _storedProducts.pop_back();
+        _modelController->Spawn(product->GetName(), product->GetModelName(), _productOutputPose);
+        return std::move(product);
+    }
+    // TODO: Add condition variables queue to wait until a product has been produced
+    else
+    {
         return nullptr;
     }
 }
@@ -98,15 +118,16 @@ void Storage::RequestProduct1(const std_msgs::String &str)
 
 void Storage::Simulate()
 {
+    // TODO: gazebo spawn here and delete on destructor
     threads.emplace_back(std::thread(&Storage::Production, this));
 }
 
 void Storage::Production()
 {
-    std::cout << _storageName << ": "<< _productionModelName <<" Production  Started!\n";
+    std::cout << _storageName << ": " << _productionModelName << " Production  Started!\n";
     while (!_productionModelName.empty())
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200)); // TODO define proper timing
         std::lock_guard<std::mutex> lck(_storageMtx);
         if (_storedProducts.size() < _maxCapacity)
         {

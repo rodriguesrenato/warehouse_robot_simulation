@@ -31,7 +31,6 @@ protected:
     int _id;
     std::vector<std::thread> threads;
     static std::mutex _coutMtx;
-    static std::shared_ptr<Model> _model;
 
 private:
     static int _totalObjects;

@@ -18,7 +18,7 @@ class Storage;
 class Order : public WarehouseObject
 {
 public:
-    Order(std::string OrderName);
+    Order(std::string orderName);
     ~Order();
     void SetOrderName(std::string orderName);
     std::string GetOrderName();

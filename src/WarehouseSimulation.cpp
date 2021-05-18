@@ -19,15 +19,18 @@
 #include "Storage.h"
 #include "Dispatch.h"
 #include "Product.h"
-#include "Robot.h"
 #include "Order.h"
 #include "OrderController.h"
+#include "Robot.h"
 
 void loadModels(std::shared_ptr<Model> &modelController)
 {
     modelController->Add("productA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productA.sdf");
+    modelController->Add("productB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productB.sdf");
     modelController->Add("storageA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/storageA.sdf");
+    modelController->Add("storageB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/storageA.sdf");
     modelController->Add("dispatchA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/dispatchA.sdf");
+    modelController->Add("dispatchB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/dispatchA.sdf");
 }
 
 void InstatiateWarehouseObjects(std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<Model> modelController, std::string configsDirectory)
@@ -123,6 +126,10 @@ int main(int argc, char **argv)
     // Instantiate objects from config file
     InstatiateWarehouseObjects(storages, dispatches, modelController, "/home/renato/catkin_ws/src/delivery_robot_simulation/configs/");
 
+    // Create a Robot Object and configure it
+    robots.emplace_back(std::make_shared<Robot>("amr",storages,dispatches,orderController));
+    
+
     // Add Storage model to simulation and start it
     std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
         modelController->Spawn(s->GetName(), s->GetModelName(), s->getPose());
@@ -132,33 +139,74 @@ int main(int argc, char **argv)
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
         modelController->Spawn(d->GetName(), d->GetModelName(), d->getPose());
     });
-    
+
+    std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
+        
+        r->StartOperation();
+    });
+
+    // std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
+
+    // });
+
     // REQ PICK WORKING DEMO
     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     // std::cout << "### REQ\n";
-    // std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced 
-    
+    // std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced
+
     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     // std::cout << "### PICK\n";
     // dispatches[0]->PickProduct(std::move(p));
-    std::cout << "Spawning RequestNextOrder threads..." << std::endl;
-    std::vector<std::future<std::shared_ptr<Order>>> futures;
-    for (int i = 0; i < 10; ++i)
-    {
-        std::string message = "robot#"+std::to_string(i);
-        futures.emplace_back(std::async(std::launch::async, &OrderController::RequestNextOrder, &*orderController, std::move(message)));
-    }
+    // std::cout << "\n\nSpawning RequestNextOrder threads..." << std::endl;
+    // std::vector<std::future<std::shared_ptr<Order>>> futures;
+    // for (int i = 0; i < 10; ++i)
+    // {
+    //     std::string message = "robot#" + std::to_string(i);
+    //     futures.emplace_back(std::async(std::launch::async, &OrderController::RequestNextOrder, &*orderController, std::move(message)));
+    // }
 
     ros::Subscriber ordersSubscriber = n.subscribe("warehouse/order/add", 10, &OrderController::AddOrder, &*orderController);
-
 
     ros::Subscriber sub11 = n.subscribe("t/1/1", 10, &Storage::RequestProduct1, &*storages[0]);
     ros::Subscriber sub21 = n.subscribe("t/2/1", 10, &Storage::RequestProduct1, &*storages[1]);
 
     ros::spin();
-    
-    std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
-        ftr.wait();
-    });
+
+/*
+Custom SIGINT Handler
+You can install a custom SIGINT handler that plays nice with ROS like so:
+
+Toggle line numbers
+   1 #include <ros/ros.h>
+   2 #include <signal.h>
+   3 
+   4 void mySigintHandler(int sig)
+   5 {
+   6   // Do some custom action.
+   7   // For example, publish a stop message to some other nodes.
+   8   
+   9   // All the default sigint handler does is call shutdown()
+  10   ros::shutdown();
+  11 }
+  12 
+  13 int main(int argc, char** argv)
+  14 {
+  15   ros::init(argc, argv, "my_node_name", ros::init_options::NoSigintHandler);
+  16   ros::NodeHandle nh;
+  17 
+  18   // Override the default ros sigint handler.
+  19   // This must be set after the first NodeHandle is created.
+  20   signal(SIGINT, mySigintHandler);
+  21   
+  22   //...
+  23   ros::spin();
+  24   return 0;
+  25 }
+
+*/
+
+    // std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
+    //     ftr.wait();
+    // });
     return 0;
 }

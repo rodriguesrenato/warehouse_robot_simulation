@@ -2,7 +2,7 @@
 #include "WarehouseObject.h"
 
 int WarehouseObject::_totalObjects = 0;
-std::mutex WarehouseObject::_coutMtx;
+std::mutex WarehouseObject::_coutMtx; // TODO: Check if its necessary
 
 WarehouseObject::WarehouseObject(){
     _type = ObjectType::noObject;
