@@ -1,6 +1,6 @@
 #include "Storage.h"
 #include "Product.h"
-// #include "WarehouseObject.h"
+#include "WarehouseObject.h"
 #include "Model.h"
 
 #include <memory>
@@ -15,6 +15,7 @@ Storage::Storage(std::string modelName, std::string productModelName, geometry_m
 {
     _storageModelName = modelName;
     _storageName = modelName + "#" + std::to_string(_id);
+    _objectName = modelName + "#" + std::to_string(_id);
     _productionModelName = productModelName;
     _storagePose = storagePose;
     _productOutputPose = productOutputPose;
@@ -45,7 +46,7 @@ void Storage::SetProductionModel(std::string productModelName)
     _productionModelName = productModelName;
 }
 
-geometry_msgs::Pose Storage::getPose()
+geometry_msgs::Pose Storage::GetPose()
 {
     return _storagePose;
 }
@@ -85,7 +86,8 @@ std::unique_ptr<Product> Storage::RequestProduct(std::string productName, int qu
 
 std::unique_ptr<Product> Storage::RequestProduct()
 {
-    std::cout << "[" << _storageName << "] RequestProduct\n";
+    Print(GetProductionModelName() + " requested");
+
     std::lock_guard<std::mutex> lck(_storageMtx);
     if (_storedProducts.size() > 0)
     {

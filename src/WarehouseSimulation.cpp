@@ -23,6 +23,7 @@
 #include "OrderController.h"
 #include "Robot.h"
 
+
 void loadModels(std::shared_ptr<Model> &modelController)
 {
     modelController->Add("productA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productA.sdf");
@@ -119,7 +120,7 @@ int main(int argc, char **argv)
     std::vector<std::shared_ptr<Dispatch>> dispatches;
     std::vector<std::shared_ptr<Robot>> robots;
     std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("warehouseOrderController");
-
+    
     // Load models
     loadModels(modelController);
 
@@ -127,21 +128,20 @@ int main(int argc, char **argv)
     InstatiateWarehouseObjects(storages, dispatches, modelController, "/home/renato/catkin_ws/src/delivery_robot_simulation/configs/");
 
     // Create a Robot Object and configure it
-    robots.emplace_back(std::make_shared<Robot>("amr",storages,dispatches,orderController));
-    
+    robots.emplace_back(std::make_shared<Robot>("amr","move_base", storages, dispatches, orderController));
 
     // Add Storage model to simulation and start it
     std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
-        modelController->Spawn(s->GetName(), s->GetModelName(), s->getPose());
+        modelController->Spawn(s->GetName(), s->GetModelName(), s->GetPose());
         s->Simulate();
     });
 
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
-        modelController->Spawn(d->GetName(), d->GetModelName(), d->getPose());
+        modelController->Spawn(d->GetName(), d->GetModelName(), d->GetPose());
     });
 
     std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
-        
+        // actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac("move_base", true);
         r->StartOperation();
     });
 
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
     ros::spin();
 
-/*
+    /*
 Custom SIGINT Handler
 You can install a custom SIGINT handler that plays nice with ROS like so:
 

@@ -12,6 +12,7 @@ Product::Product(std::string modelName)
 {
     _modelName = modelName;
     _productName = modelName + "#" + std::to_string(_id);
+    _objectName = modelName + "#" + std::to_string(_id);
 }
 
 std::string Product::GetName()

@@ -18,6 +18,7 @@
 OrderController::OrderController(std::string orderControllerName)
 {
     _orderControllerName = orderControllerName + "#" + std::to_string(_id);
+    _objectName = orderControllerName + "#" + std::to_string(_id);
 }
 OrderController::~OrderController()
 {
@@ -33,7 +34,6 @@ void OrderController::AddOrder(const std_msgs::String &str)
         if (stream)
         {
             stream >> val;
-            // std::cout << "goalDispatchName: " << val << std::endl;
             order->SetGoalDispatchName(val);
             while (!stream.eof())
             {
@@ -41,8 +41,7 @@ void OrderController::AddOrder(const std_msgs::String &str)
                 std::string productQuantity;
 
                 stream >> product >> productQuantity;
-                // std::cout << "product: " << product << std::endl;
-                // std::cout << "productQuantity: " << productQuantity << std::endl;
+
                 // TODO: validate order values, discard not valid prod and quant
                 order->AddProduct(product, stoi(productQuantity));
             }
@@ -50,7 +49,7 @@ void OrderController::AddOrder(const std_msgs::String &str)
     }
     catch (...)
     {
-        std::cout << "Could not process this Order request: " << str << std::endl;
+        Print("Could not process this Order request: " + str.data);
         return;
     }
 
@@ -60,14 +59,14 @@ void OrderController::AddOrder(const std_msgs::String &str)
         _queue.push_back(std::move(order));
         _queueCond.notify_one();
 
-        std::cout << _queue.back()->GetOrderName() << " was added to queue[" << _queue.size() << "]" << std::endl;
+        Print(_queue.back()->GetOrderName() + " was added to queue[" + std::to_string(_queue.size()) + "]");
     }
 }
 
 std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName) // TODO: Usar aqui as condition variables para que os robos facam as requests e aguardem um order chegar
 {
+    Print(robotName + " is requesting an Order");
     std::unique_lock<std::mutex> uLck(_queueMtx);
-    std::cout << robotName << " is requesting an Order " << std::endl;
     _queueCond.wait(uLck, [this] { return !_queue.empty(); });
 
     std::shared_ptr<Order> order = std::move(_queue.front());
@@ -76,7 +75,7 @@ std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName) 
     order->SetRobotWorkerName(robotName);
     _orders.push_back(order);
 
-    std::cout << order->GetOrderName() << " given to " << robotName << std::endl;
+    Print(order->GetOrderName() + " given to " + robotName);
 
     return order;
 }

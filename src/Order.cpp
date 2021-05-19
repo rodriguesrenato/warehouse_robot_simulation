@@ -13,6 +13,7 @@
 Order::Order(std::string orderName)
 {
     _orderName = orderName + "#" + std::to_string(_id);
+    _objectName = orderName + "#" + std::to_string(_id);
 }
 Order::~Order()
 {

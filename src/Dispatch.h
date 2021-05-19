@@ -22,7 +22,7 @@ public:
 
     std::string GetName();
     std::string GetModelName();
-    geometry_msgs::Pose getPose();
+    geometry_msgs::Pose GetPose();
 
     bool GetGazeboSpawnStatus();
     void SetGazeboSpawnStatus(bool status);

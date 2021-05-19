@@ -23,7 +23,7 @@ public:
     std::string GetModelName();
     std::string GetProductionModelName();
     void SetProductionModel(std::string productModel);
-    geometry_msgs::Pose getPose();
+    geometry_msgs::Pose GetPose();
     geometry_msgs::Pose GetProductOutputPose();
     bool GetGazeboSpawnStatus();
     void SetGazeboSpawnStatus(bool status);

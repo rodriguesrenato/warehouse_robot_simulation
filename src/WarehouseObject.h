@@ -24,11 +24,12 @@ public:
     ~WarehouseObject();
     int getID() { return _id; }
     ObjectType getType() { return _type; }
-    
+    void Print(std::string message);
 
 protected:
     ObjectType _type;
     int _id;
+    std::string _objectName;
     std::vector<std::thread> threads;
     static std::mutex _coutMtx;
 
