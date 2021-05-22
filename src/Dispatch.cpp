@@ -14,6 +14,7 @@ Dispatch::Dispatch(std::string modelName, geometry_msgs::Pose dispatchPose, std:
 }
 Dispatch::~Dispatch()
 {
+    Print("Destructor");
 }
 
 std::string Dispatch::GetName()

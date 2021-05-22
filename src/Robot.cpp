@@ -36,7 +36,8 @@ Robot::Robot(std::string robotName, std::string actionName, std::vector<std::sha
 }
 Robot::~Robot()
 {
-    _status = StatusType::standby;
+    Print("Destructor");
+    _status = StatusType::offline;
 }
 
 void Robot::SetStatus(StatusType status)
@@ -46,6 +47,11 @@ void Robot::SetStatus(StatusType status)
 StatusType Robot::GetStatus()
 {
     return _status;
+}
+
+std::vector<std::unique_ptr<Product>> &Robot::GetTakenProducts()
+{
+    return _takenProducts;
 }
 
 void Robot::SetOrder(Order order)
@@ -63,7 +69,6 @@ bool Robot::isStandby()
 std::deque<std::shared_ptr<Storage>> Robot::GetStoragesToGo()
 {
     std::unordered_map<std::string, int> productList = _order->GetProductList();
-    // std::unordered_map<std::string, int> storageList;
     std::deque<std::shared_ptr<Storage>> storagesToGo;
 
     for (int i = 0; i < _storages.size(); i++)
@@ -84,7 +89,7 @@ std::deque<std::shared_ptr<Storage>> Robot::GetStoragesToGo()
 
 void Robot::StartOperation()
 {
-    _status = StatusType::requestOrder;
+    _status = StatusType::startup;
     threads.emplace_back(std::thread(&Robot::ExecuteOrder, this));
 }
 
@@ -119,32 +124,51 @@ void Robot::ExecuteOrder()
 
     // Create the Action Client and wait for it's initialisation
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac(_actionName, true);
-    while (!ac.waitForServer(ros::Duration(5.0)))
-    {
-        Print("Waiting for the " + _actionName + " action server to initialize");
-    }
+    std::shared_ptr<Dispatch> targetDispatch;
+    std::deque<std::shared_ptr<Storage>> storagesToGo;
+    std::shared_ptr<Storage> targetStorage;
 
     while (_status != StatusType::offline)
     {
-        // switch(_status)
-        if (_status == StatusType::standby)
+        switch (_status)
         {
+        case StatusType::startup:
+            if (ac.waitForServer(ros::Duration(5.0)))
+            {
+                Print("ActionServer connected");
+                _status = StatusType::requestOrder;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
+            break;
 
-        if (_status == StatusType::requestOrder)
-        {
-            _order = _orderController->RequestNextOrder(_robotName);
-            _status = StatusType::processOrder;
-        }
+        case StatusType::standby:
 
-        if (_status == StatusType::processOrder)
-        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            break;
+
+        case StatusType::requestOrder:
+
+            _order = _orderController->RequestNextOrderWithTimeout(_robotName, 1000);
+
+            if (_order != nullptr)
+            {
+                Print("Received order " + _order->GetName());
+
+                _status = StatusType::processOrder;
+            }
+            break;
+
+        case StatusType::processOrder:
+
+            //clear previous values
+            targetStorage.reset();
+            targetDispatch.reset();
+            storagesToGo.clear();
+
             // Get a queue of storages that has order's products
-            std::deque<std::shared_ptr<Storage>> storagesToGo = this->GetStoragesToGo();
+            storagesToGo = this->GetStoragesToGo();
 
             // Get the dispatch shared_ptr by dispatch modelName
-            std::shared_ptr<Dispatch> targetDispatch;
             for (std::shared_ptr<Dispatch> &d : _dispatches)
             {
                 if (d->GetModelName() == _order->GetGoalDispatchName())
@@ -152,60 +176,108 @@ void Robot::ExecuteOrder()
                     targetDispatch = d;
                 }
             }
+            _status = StatusType::plan;
+            break;
+
+        case StatusType::plan:
 
             // Move to the storages one by one to get the products
-            while (storagesToGo.size() > 0)
+            if (storagesToGo.size() > 0)
             {
                 // Get first storage and remove it from queue
-                std::shared_ptr<Storage> targetStorage = storagesToGo.front();
+                targetStorage = storagesToGo.front();
                 storagesToGo.pop_front();
+                _status = StatusType::moveToStorage;
+            }
+            else
+            {
+                if (targetDispatch != nullptr)
+                {
+                    _status = StatusType::moveToDispatch;
+                }
+                else
+                {
+                    _status = StatusType::requestOrder;
+                }
+            }
+            break;
 
-                // Move to this storage, if fails, try until get there
-                // TODO: add retries variable
-                Print(" Moving to "+targetStorage->GetName());
-                while (!Move(ac, targetStorage->GetProductOutputPose()))
+        case StatusType::moveToStorage:
+            // Move to this storage, if fails, try until get there
+            if (targetStorage != nullptr)
+            {
+                Print(" Moving to " + targetStorage->GetName());
+                if (Move(ac, targetStorage->GetProductOutputPose()))
+                {
+                    Print("Arrive at " + targetStorage->GetName() + ", requesting products");
+                    _status = StatusType::executeOrder;
+                }
+                else
                 {
                     Print("Fail to move to " + targetStorage->GetName() + ", trying again..");
                 }
-                Print("Arrive at " + targetStorage->GetName() + ", requesting products");
+            }
+            else
+            {
+                // TODO
+            }
+            break;
 
-                // Get the number of products placed in order
-                int productQuantity = _order->GetProductList()[targetStorage->GetProductionModelName()];
+        case StatusType::executeOrder:
+            // Get the number of products placed in order
+            // int productQuantity = _order->GetProductList()[targetStorage->GetProductionModelName()];
 
-                for (int i = 0; i < productQuantity; i++)
+            for (int i = 0; i < _order->GetProductList()[targetStorage->GetProductionModelName()]; i++)
+            {
+                // check if _status haven't changed
+                if (_status != StatusType::executeOrder)
                 {
-                    // Request one product at time
-                    std::unique_ptr<Product> p = targetStorage->RequestProduct();
-
-                    if (p != nullptr)
-                    {
-                        // If receive a product, store it's reference in _takenProducts
-                        Print("Got " + p->GetName());
-                        _takenProducts.push_back(std::move(p));
-                    }
-                    else
-                    {
-                        // If storage is empty or received an invalid product, wait a bit more for storage produce more products
-                        i--;
-                    }
-
-                    // Wait for product accomodate in the robot's cargo bed before request a new product
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    break;
                 }
-                Print(std::to_string(productQuantity) + " " + targetStorage->GetProductionModelName() + " were gotten at " + targetStorage->GetName());
+
+                // Request one product at time
+                std::unique_ptr<Product> p = targetStorage->RequestProduct();
+
+                if (p != nullptr)
+                {
+                    // If receive a product, store it's reference in _takenProducts
+                    Print("Got " + p->GetName());
+                    _takenProducts.push_back(std::move(p));
+                }
+                else
+                {
+                    // If storage is empty or received an invalid product, wait a bit more for storage produce more products
+                    i--;
+                }
+
+                // Wait for product accomodate in the robot's cargo bed before request a new product
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
             }
 
+            Print(std::to_string(_takenProducts.size()) + " " + targetStorage->GetProductionModelName() + " were gotten at " + targetStorage->GetName());
+            _status = StatusType::plan;
+            break;
+
+        case StatusType::moveToDispatch:
             // After get all products in the order, move to the target Dispatch area
-            Print(" Moving to "+targetDispatch->GetName());
-            while (!Move(ac, targetDispatch->GetPose()))
+
+            Print(" Moving to " + targetDispatch->GetName());
+            if (Move(ac, targetDispatch->GetPose()))
+            {
+                Print("Arrive at " + targetDispatch->GetName() + ", dispatch" + std::to_string(_takenProducts.size()) + " products");
+                _status = StatusType::dispatchOrder;
+            }
+            else
             {
                 Print("Fail to move to " + targetDispatch->GetName() + ", trying again..");
             }
-            Print("Arrive at " + targetDispatch->GetName() + ", dispatch"+std::to_string(_takenProducts.size())+" products");
 
+            break;
+
+        case StatusType::dispatchOrder:
             // Deliver all products that were taken
-            while(_takenProducts.size()>0)
-            {                
+            while (_takenProducts.size() > 0)
+            {
                 Print("Deliver " + _takenProducts.back()->GetName() + " to " + targetDispatch->GetName());
 
                 // Simulate a small delay between deliveries and move Product from robot cargo bed to Dispatch
@@ -213,9 +285,10 @@ void Robot::ExecuteOrder()
                 targetDispatch->PickProduct(std::move(_takenProducts.back()));
                 _takenProducts.pop_back();
             }
-            
-            Print(_order->GetOrderName() + " is completed!");
+
+            Print(_order->GetName() + " is completed!");
             _status = StatusType::requestOrder;
+            break;
         }
     }
 }

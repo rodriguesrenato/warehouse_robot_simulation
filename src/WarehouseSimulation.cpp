@@ -22,7 +22,9 @@
 #include "Order.h"
 #include "OrderController.h"
 #include "Robot.h"
+#include <signal.h>
 
+bool isShutdown = false;
 
 void loadModels(std::shared_ptr<Model> &modelController)
 {
@@ -107,20 +109,30 @@ void InstatiateWarehouseObjects(std::vector<std::shared_ptr<Storage>> &storages,
     dispatchesConfigFs.close();
 }
 
+void mySigintHandler(int sig)
+{
+    std::cout << "Simulation is being shut down" << std::endl;
+    isShutdown = true;
+    // ros::shutdown();
+}
+
 int main(int argc, char **argv)
 {
     // Initialize the WarehouseSimulation node and create a handle to it
-    ros::init(argc, argv, "WarehouseSimulation");
+    ros::init(argc, argv, "WarehouseSimulation", ros::init_options::NoSigintHandler);
     ros::NodeHandle n;
 
+    // Create an instance of the modelController
     std::shared_ptr<Model> modelController = std::make_shared<Model>();
 
-    // Create Storage objects
+    // Create and instance of the orderController
+    std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("warehouseOrderController");
+
+    // Create Storage objects containers
     std::vector<std::shared_ptr<Storage>> storages;
     std::vector<std::shared_ptr<Dispatch>> dispatches;
     std::vector<std::shared_ptr<Robot>> robots;
-    std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("warehouseOrderController");
-    
+
     // Load models
     loadModels(modelController);
 
@@ -128,12 +140,12 @@ int main(int argc, char **argv)
     InstatiateWarehouseObjects(storages, dispatches, modelController, "/home/renato/catkin_ws/src/delivery_robot_simulation/configs/");
 
     // Create a Robot Object and configure it
-    robots.emplace_back(std::make_shared<Robot>("amr","move_base", storages, dispatches, orderController));
+    robots.emplace_back(std::make_shared<Robot>("amr", "move_base", storages, dispatches, orderController));
 
     // Add Storage model to simulation and start it
     std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
         modelController->Spawn(s->GetName(), s->GetModelName(), s->GetPose());
-        s->Simulate();
+        s->StartOperation();
     });
 
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
@@ -141,38 +153,41 @@ int main(int argc, char **argv)
     });
 
     std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
-        // actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac("move_base", true);
         r->StartOperation();
     });
 
-    // std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
-
-    // });
-
-    // REQ PICK WORKING DEMO
-    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    // std::cout << "### REQ\n";
-    // std::unique_ptr<Product> p = storages[0]->RequestProduct("productA", 1); // TODO: Add condition variables to wait until a product is produced
-
-    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    // std::cout << "### PICK\n";
-    // dispatches[0]->PickProduct(std::move(p));
-    // std::cout << "\n\nSpawning RequestNextOrder threads..." << std::endl;
-    // std::vector<std::future<std::shared_ptr<Order>>> futures;
-    // for (int i = 0; i < 10; ++i)
-    // {
-    //     std::string message = "robot#" + std::to_string(i);
-    //     futures.emplace_back(std::async(std::launch::async, &OrderController::RequestNextOrder, &*orderController, std::move(message)));
-    // }
-
     ros::Subscriber ordersSubscriber = n.subscribe("warehouse/order/add", 10, &OrderController::AddOrder, &*orderController);
 
-    ros::Subscriber sub11 = n.subscribe("t/1/1", 10, &Storage::RequestProduct1, &*storages[0]);
-    ros::Subscriber sub21 = n.subscribe("t/2/1", 10, &Storage::RequestProduct1, &*storages[1]);
+    // Set a sigHandler to handle CRTL+C
+    signal(SIGINT, mySigintHandler);
 
-    ros::spin();
+    ros::Rate loop_rate(10);
+    while (ros::ok() && !isShutdown)
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
 
-    /*
+    std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
+        modelController->Delete(s->GetName());
+    });
+
+    std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
+        modelController->Delete(d->GetName());
+    });
+
+    std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
+        for(auto &p:r->GetTakenProducts()){
+        modelController->Delete(p->GetName());
+        }
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // After Delete spawned models in Gazebo, then completely shutdown this ros node
+    ros::shutdown();
+    return 0;
+}
+
+/*
 Custom SIGINT Handler
 You can install a custom SIGINT handler that plays nice with ROS like so:
 
@@ -205,8 +220,6 @@ Toggle line numbers
 
 */
 
-    // std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
-    //     ftr.wait();
-    // });
-    return 0;
-}
+// std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
+//     ftr.wait();
+// });

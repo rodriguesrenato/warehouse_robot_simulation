@@ -29,9 +29,8 @@ public:
     void SetGazeboSpawnStatus(bool status);
     void RequestProduct1(const std_msgs::String &str);
 
-    std::unique_ptr<Product> RequestProduct(std::string productName, int quantity);
     std::unique_ptr<Product> RequestProduct();
-    void Simulate();
+    void StartOperation();
     void Production();
 
 private:
@@ -43,7 +42,7 @@ private:
     bool _isSpawned{false};
     std::shared_ptr<Model> _modelController;
 
-    int _maxCapacity{10};
+    int _maxCapacity{4};
     std::vector<std::unique_ptr<Product>> _storedProducts;
     std::vector<std::thread> _threads;
     std::mutex _storageMtx;

@@ -23,7 +23,7 @@ public:
     ~OrderController();
     void AddOrder(const std_msgs::String &str);
     std::shared_ptr<Order> RequestNextOrder(std::string robotName);
-    std::shared_ptr<Order> RequestNextOrderWithTimeout(std::string robotName,int timeout);
+    std::shared_ptr<Order> RequestNextOrderWithTimeout(std::string robotName,int timeoutMs);
     void CloseOrder(std::shared_ptr<Order> order);
 
 private:

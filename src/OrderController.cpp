@@ -22,6 +22,7 @@ OrderController::OrderController(std::string orderControllerName)
 }
 OrderController::~OrderController()
 {
+    Print("Destructor");
 }
 
 void OrderController::AddOrder(const std_msgs::String &str)
@@ -59,7 +60,7 @@ void OrderController::AddOrder(const std_msgs::String &str)
         _queue.push_back(std::move(order));
         _queueCond.notify_one();
 
-        Print(_queue.back()->GetOrderName() + " was added to queue[" + std::to_string(_queue.size()) + "]");
+        Print(_queue.back()->GetName() + " was added to queue[" + std::to_string(_queue.size()) + "]");
     }
 }
 
@@ -75,16 +76,17 @@ std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName) 
     order->SetRobotWorkerName(robotName);
     _orders.push_back(order);
 
-    Print(order->GetOrderName() + " given to " + robotName);
+    Print(order->GetName() + " given to " + robotName);
 
     return order;
 }
 
-std::shared_ptr<Order> OrderController::RequestNextOrderWithTimeout(std::string robotName, int timeout) // TODO: Usar aqui as condition variables para que os robos facam as requests e aguardem um order chegar
+std::shared_ptr<Order> OrderController::RequestNextOrderWithTimeout(std::string robotName, int timeoutMs) // TODO: Usar aqui as condition variables para que os robos facam as requests e aguardem um order chegar
 {
+    // Print(robotName + " is requesting an Order with timeout of " + std::to_string(timeoutMs) + "ms");
+    
     std::unique_lock<std::mutex> uLck(_queueMtx);
-    std::cout << robotName << " is requesting an Order with timeout of " << timeout << "ms" << std::endl;
-    auto cv = _queueCond.wait_for(uLck, std::chrono::milliseconds(timeout));
+    auto cv = _queueCond.wait_for(uLck, std::chrono::milliseconds(timeoutMs));
 
     // if timeout, return a nullptr
     if (cv == std::cv_status::timeout)
@@ -98,7 +100,7 @@ std::shared_ptr<Order> OrderController::RequestNextOrderWithTimeout(std::string 
     order->SetRobotWorkerName(robotName);
     _orders.push_back(order);
 
-    std::cout << order->GetOrderName() << " given to " << robotName << std::endl;
+    Print(order->GetName() + " was given to " + robotName);
 
     return order;
 }

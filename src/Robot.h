@@ -26,10 +26,14 @@
 enum StatusType
 {
     offline,
+    startup,
     standby,
     requestOrder,
     processOrder,
-    move,
+    plan,
+    executeOrder,
+    moveToStorage,
+    moveToDispatch,
     requestProducts,
     dispatchOrder,
 };
@@ -48,7 +52,7 @@ public:
     void StartOperation();
     std::deque<std::shared_ptr<Storage>> GetStoragesToGo();
     bool Move(actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> &ac, geometry_msgs::Pose goal);
-
+    std::vector<std::unique_ptr<Product>>& GetTakenProducts();
 private:
     std::string _robotName{};
     std::string _actionName{};

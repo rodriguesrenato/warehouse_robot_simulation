@@ -18,11 +18,11 @@ Order::Order(std::string orderName)
 Order::~Order()
 {
 }
-void Order::SetOrderName(std::string orderName)
+void Order::SetName(std::string orderName)
 {
     _orderName = orderName;
 }
-std::string Order::GetOrderName()
+std::string Order::GetName()
 {
     return _orderName;
 }

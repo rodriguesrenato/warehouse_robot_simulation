@@ -20,8 +20,8 @@ class Order : public WarehouseObject
 public:
     Order(std::string orderName);
     ~Order();
-    void SetOrderName(std::string orderName);
-    std::string GetOrderName();
+    void SetName(std::string orderName);
+    std::string GetName();
     void SetRobotWorkerName(std::string robotName);
     std::string GetRobotWorkerName();
     void SetGoalDispatchName(std::string goalDispatchName);
