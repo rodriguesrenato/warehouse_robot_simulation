@@ -142,16 +142,18 @@ int main(int argc, char **argv)
     // Create a Robot Object and configure it
     robots.emplace_back(std::make_shared<Robot>("amr", "move_base", storages, dispatches, orderController));
 
-    // Add Storage model to simulation and start it
+    // Spawn each Storage in simulation and start it's operation
     std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
         modelController->Spawn(s->GetName(), s->GetModelName(), s->GetPose());
         s->StartOperation();
     });
-
+    
+    // Spawn each Dispatch in simulation
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
         modelController->Spawn(d->GetName(), d->GetModelName(), d->GetPose());
     });
 
+    // Start each Robots operation
     std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
         r->StartOperation();
     });
@@ -177,49 +179,14 @@ int main(int argc, char **argv)
     });
 
     std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
-        for(auto &p:r->GetTakenProducts()){
-        modelController->Delete(p->GetName());
+        std::vector<std::string> productsName = r->GetCargoBinProductsName();
+        for(auto &p:productsName){
+        modelController->Delete(p);
         }
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    
     // After Delete spawned models in Gazebo, then completely shutdown this ros node
     ros::shutdown();
     return 0;
 }
-
-/*
-Custom SIGINT Handler
-You can install a custom SIGINT handler that plays nice with ROS like so:
-
-Toggle line numbers
-   1 #include <ros/ros.h>
-   2 #include <signal.h>
-   3 
-   4 void mySigintHandler(int sig)
-   5 {
-   6   // Do some custom action.
-   7   // For example, publish a stop message to some other nodes.
-   8   
-   9   // All the default sigint handler does is call shutdown()
-  10   ros::shutdown();
-  11 }
-  12 
-  13 int main(int argc, char** argv)
-  14 {
-  15   ros::init(argc, argv, "my_node_name", ros::init_options::NoSigintHandler);
-  16   ros::NodeHandle nh;
-  17 
-  18   // Override the default ros sigint handler.
-  19   // This must be set after the first NodeHandle is created.
-  20   signal(SIGINT, mySigintHandler);
-  21   
-  22   //...
-  23   ros::spin();
-  24   return 0;
-  25 }
-
-*/
-
-// std::for_each(futures.begin(), futures.end(), [](std::future<std::shared_ptr<Order>> &ftr) {
-//     ftr.wait();
-// });

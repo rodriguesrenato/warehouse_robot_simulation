@@ -1,22 +1,24 @@
 #ifndef WAREHOUSEOBJECT_H
 #define WAREHOUSEOBJECT_H
 
-
-#include <mutex>
-#include <thread>
+#include <string>
 #include <vector>
+#include <thread>
+#include <mutex>
 
-#include "Model.h"
-
+// Warehouse objects type
 enum ObjectType
 {
     noObject,
     objectRobot,
     objectStorage,
     objectProduct,
-    objectDropZone,
+    objectDispatch,
+    objectOrder,
+    objectOrderController,
 };
 
+// Parent class for all objects in the warehouse simulation
 class WarehouseObject
 {
 public:
@@ -24,17 +26,17 @@ public:
     ~WarehouseObject();
     int getID() { return _id; }
     ObjectType getType() { return _type; }
-    void Print(std::string message);
+    void Print(std::string message); // Common print function protected by a mutex
 
 protected:
-    ObjectType _type;
-    int _id;
-    std::string _objectName;
-    std::vector<std::thread> threads;
-    static std::mutex _coutMtx;
+    ObjectType _type;                 // Object type defined
+    int _id;                          // Unique id generated
+    std::string _objectName;          // Unique object name
+    std::vector<std::thread> threads; // Vector of threads created
+    static std::mutex _coutMtx;       // Print mutex
 
 private:
-    static int _totalObjects;
+    static int _totalObjects; // Global counter for generate unique ids
 };
 
 #endif

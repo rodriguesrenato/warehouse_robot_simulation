@@ -7,12 +7,10 @@
 #include <thread>
 #include <mutex>
 #include <geometry_msgs/Pose.h>
-#include <std_msgs/String.h>
 
-// #include "Product.h"
+#include "Product.h"
 #include "WarehouseObject.h"
-class Product;
-class Model;
+#include "Model.h"
 
 class Storage : public WarehouseObject
 {
@@ -22,30 +20,23 @@ public:
     std::string GetName();
     std::string GetModelName();
     std::string GetProductionModelName();
-    void SetProductionModel(std::string productModel);
     geometry_msgs::Pose GetPose();
     geometry_msgs::Pose GetProductOutputPose();
-    bool GetGazeboSpawnStatus();
-    void SetGazeboSpawnStatus(bool status);
-    void RequestProduct1(const std_msgs::String &str);
 
     std::unique_ptr<Product> RequestProduct();
     void StartOperation();
-    void Production();
 
 private:
-    std::string _storageName{};
-    std::string _storageModelName{};
-    std::string _productionModelName{};
-    geometry_msgs::Pose _storagePose;
-    geometry_msgs::Pose _productOutputPose;
-    bool _isSpawned{false};
-    std::shared_ptr<Model> _modelController;
+    std::string _storageModelName{};                       // Storage model name
+    std::string _productionModelName{};                    // Product model name that will be produced
+    geometry_msgs::Pose _storagePose;                      // Storage Pose
+    geometry_msgs::Pose _productOutputPose;                // Pose that Products will be delivered on RequestProduct call
+    std::shared_ptr<Model> _modelController;               // Gazebo model controller
+    int _maxCapacity{4};                                   // Maximum number of Products stored in this Storage
+    std::mutex _storageMtx;                                // Mutex to access _storedProducts vector
+    std::vector<std::unique_ptr<Product>> _storedProducts; // Store all produced Products
 
-    int _maxCapacity{4};
-    std::vector<std::unique_ptr<Product>> _storedProducts;
-    std::vector<std::thread> _threads;
-    std::mutex _storageMtx;
+    void Production();
 };
 
 #endif

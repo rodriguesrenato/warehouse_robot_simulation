@@ -1,29 +1,27 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 
-#include <vector>
 #include <string>
+#include <vector>
+#include <deque>
+#include <unordered_map>
 #include <memory>
 #include <thread>
 #include <mutex>
+
 #include <geometry_msgs/Pose.h>
-#include <std_msgs/String.h>
-#include <unordered_map>
-#include <deque>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <actionlib/client/simple_action_client.h>
 
 #include "WarehouseObject.h"
-// #include "Order.h"
 #include "Storage.h"
 #include "Product.h"
 #include "Order.h"
 #include "Dispatch.h"
 #include "OrderController.h"
 
-#include <move_base_msgs/MoveBaseAction.h>
-#include <actionlib/client/simple_action_client.h>
-
-// make a status variable to check if robot is standby
-enum StatusType
+// Robot operational status types
+enum RobotStatus
 {
     offline,
     startup,
@@ -31,41 +29,36 @@ enum StatusType
     requestOrder,
     processOrder,
     plan,
-    executeOrder,
     moveToStorage,
+    requestProduct,
     moveToDispatch,
-    requestProducts,
     dispatchOrder,
 };
 
+// Autonomous Mobile Robot class
 class Robot : public WarehouseObject
 {
 public:
     Robot(std::string robotName, std::string actionName, std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<OrderController> orderController);
     ~Robot();
-    void SetStatus(StatusType status);
-    StatusType GetStatus();
-    void SetOrder(Order order);
-    void SetWarehouseObjects(std::vector<std::shared_ptr<Storage>> storages, std::vector<std::shared_ptr<Dispatch>> dispatches);
-    bool isStandby();
-    void ExecuteOrder();
+    void SetStatus(RobotStatus status);
+    RobotStatus GetStatus();
+    std::vector<std::string> GetCargoBinProductsName();
     void StartOperation();
+
+private:
+    std::string _actionName{};                               // SimpleActionClient name
+    std::vector<std::shared_ptr<Storage>> _storages;         // Vector of available Storage
+    std::vector<std::shared_ptr<Dispatch>> _dispatches;      // Vector of available Dispatch
+    std::shared_ptr<OrderController> _orderController;       // OrderController
+    RobotStatus _status{RobotStatus::standby};                 // Current RobotStatus
+    std::shared_ptr<Order> _order;                           // Current Order
+    std::mutex _cargoBinMtx;                                 // Mutex to access and modify _cargoBinProducts
+    std::vector<std::unique_ptr<Product>> _cargoBinProducts; // Products stored in the robot cargo bin
+
     std::deque<std::shared_ptr<Storage>> GetStoragesToGo();
     bool Move(actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> &ac, geometry_msgs::Pose goal);
-    std::vector<std::unique_ptr<Product>>& GetTakenProducts();
-private:
-    std::string _robotName{};
-    std::string _actionName{};
-
-    geometry_msgs::Pose _standbyPose; // inital and standby pose to wait new order
-    std::shared_ptr<Order> _order;
-    StatusType _status{StatusType::standby};
-
-    std::vector<std::unique_ptr<Product>> _takenProducts;
-    std::vector<std::shared_ptr<Storage>> _storages;
-    std::vector<std::shared_ptr<Dispatch>> _dispatches;
-    std::shared_ptr<OrderController> _orderController;
-    std::vector<std::thread> _threads;
+    void Operate();
 };
 
 #endif
