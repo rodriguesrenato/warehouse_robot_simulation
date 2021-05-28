@@ -1,3 +1,4 @@
 # storage_model_name product_model_name storage_pose_xyz product_output_pose_xyz
-storageA    productA    0.0 -2.0 1.5    0.0 -2.0 0.6
-storageB    productB    4.0 -2.0 1.5    4.0 -2.0 0.6
+StorageR    ProductR    5.05 -2.0 1.1 0.0 0.0 3.141592    4.5 -1.75 0.8 0.0 0.0 1.5707
+StorageG    ProductG    1.05 -2.0 1.1 0.0 0.0 3.141592    0.5 -1.75 0.8 0.0 0.0 1.5707
+StorageB    ProductB    -2.95 -2.0 1.1 0.0 0.0 3.141592   -3.5 -1.75 0.8 0.0 0.0 1.5707
