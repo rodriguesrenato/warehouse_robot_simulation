@@ -1,7 +1,8 @@
 # delivery_robot_simulation
 
-This project is under development.
+This project is under development. This project will be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree.
 
+- Next Step: Documentation
 
 # Development Process
 
@@ -27,51 +28,9 @@ Build the warehouse controller node
 
 # Class structures
 
- - Storage Controller
-    - Output Package
-    - Input Package
-    - Status
-        - Capacity
-
- - Delivery Robot Controller
-    - Status
-    - Container Cap
-    - Move to Position
-    - Request to Pick Package
-    - Request to Deliver Package
-    - Info
-        - Max_cap
-        - Get Container Position
-
-- Operation Controller
-    - Initialize Simualtion -> Button Click?
-        - Load Warehouse Config File
-        - Place Robot
-        - Place the Storages Zones
-        - Place Drop-off Zones
-    - Storages Queue
-    - Robot Queue
-    - Order Queue
-    - Planner -> take most recent order and send to robot
-
-- Package controller
-    - Spawn
-        - Id, Pos xyz, color
-    - Remove
-        - Id
-
-- Robot Controller
-    - Tasks Queue
-    - ProcessTasks
-    - GetStatus
-    - ClearTasks (remove objects)
-    private:
-    - ContainerObjects
-    - Status
-    - NextTask
-
 # References
 
 - https://roboticsbackend.com/ros-include-cpp-header-from-another-package/
 - https://www.youtube.com/watch?v=1bnEdQzf8Yw
 - how to add threads to makefile https://stackoverflow.com/questions/67300703/how-do-i-use-the-pthreads-in-a-ros-c-node
+- Ros wiki (sigint)
