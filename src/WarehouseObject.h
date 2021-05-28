@@ -16,6 +16,7 @@ enum ObjectType
     objectDispatch,
     objectOrder,
     objectOrderController,
+    objectModelController,
 };
 
 // Parent class for all objects in the warehouse simulation
@@ -24,8 +25,8 @@ class WarehouseObject
 public:
     WarehouseObject();
     ~WarehouseObject();
-    int getID() { return _id; }
-    ObjectType getType() { return _type; }
+    std::string GetName();
+    ObjectType GetType();
     void Print(std::string message); // Common print function protected by a mutex
 
 protected:
@@ -33,7 +34,7 @@ protected:
     int _id;                          // Unique id generated
     std::string _objectName;          // Unique object name
     std::vector<std::thread> threads; // Vector of threads created
-    static std::mutex _coutMtx;       // Print mutex
+    static std::mutex _coutMtx;       // Print function mutex
 
 private:
     static int _totalObjects; // Global counter for generate unique ids

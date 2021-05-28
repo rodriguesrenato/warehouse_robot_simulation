@@ -1,8 +1,4 @@
-#include "ros/ros.h"
-
-#include <std_msgs/String.h>
-#include <geometry_msgs/Pose.h>
-#include <gazebo_msgs/SpawnModel.h>
+#include <string>
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -11,11 +7,15 @@
 #include <math.h>
 #include <memory>
 #include <thread>
-#include <mutex>
-#include <string>
-#include <future>
+#include <exception>
 
-#include "Model.h"
+#include "ros/ros.h"
+#include <std_msgs/String.h>
+#include <geometry_msgs/Pose.h>
+#include <gazebo_msgs/SpawnModel.h>
+#include <tf2/LinearMath/Quaternion.h>
+
+#include "ModelController.h"
 #include "Storage.h"
 #include "Dispatch.h"
 #include "Product.h"
@@ -26,107 +26,205 @@
 
 bool isShutdown = false;
 
-void loadModels(std::shared_ptr<Model> &modelController)
+// Print function to make code cleaner and easier to track on cout
+void Print(std::string message)
 {
-    modelController->Add("productA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productA.sdf");
-    modelController->Add("productB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/productB.sdf");
-    modelController->Add("storageA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/storageA.sdf");
-    modelController->Add("storageB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/storageA.sdf");
-    modelController->Add("dispatchA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/dispatchA.sdf");
-    modelController->Add("dispatchB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/dispatchA.sdf");
+    std::cout << "[WarehouseSimulation] " << message << std::endl;
 }
 
-void InstatiateWarehouseObjects(std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<Model> modelController, std::string configsDirectory)
+// Custom SIGINT handler
+void SigintHandler(int sig)
+{
+    std::cout << "Simulation is being shut down" << std::endl;
+
+    // Set isShutdown true to break ros spin while loop and start simulation cleaning spawned object
+    isShutdown = true;
+}
+
+// Build and return a geometry_msgs::Pose from string values
+geometry_msgs::Pose GetPoseFromString(float x, float y, float z, float roll, float pitch, float yaw)
+{
+    geometry_msgs::Pose pose;
+    tf2::Quaternion quaternionPose;
+
+    // Set x, y and z values
+    pose.position.x = x;
+    pose.position.y = y;
+    pose.position.z = z;
+
+    // Convert RPY orientation to quaternion
+    quaternionPose.setRPY(roll, pitch, yaw);
+    pose.orientation.x = quaternionPose.x();
+    pose.orientation.y = quaternionPose.y();
+    pose.orientation.z = quaternionPose.z();
+    pose.orientation.w = quaternionPose.w();
+
+    return pose;
+}
+
+// Load all specified models to the model controller
+void LoadModels(std::shared_ptr<ModelController> &modelController)
+{
+    modelController->Add("ProductR", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/ProductR.sdf");
+    modelController->Add("ProductG", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/ProductG.sdf");
+    modelController->Add("ProductB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/ProductB.sdf");
+
+    modelController->Add("StorageR", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/StorageR.sdf");
+    modelController->Add("StorageG", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/StorageG.sdf");
+    modelController->Add("StorageB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/StorageB.sdf");
+
+    modelController->Add("DispatchA", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/Dispatch.sdf");
+    modelController->Add("DispatchB", "/home/renato/catkin_ws/src/delivery_robot_simulation/models/warehouseObjects/Dispatch.sdf");
+}
+
+// Read the configuration files and instantiate the warehouse objects
+bool InstatiateWarehouseObjects(std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<ModelController> modelController, std::string configsDirectory)
 {
     std::string line;
 
-    std::ifstream storagesConfigFs(configsDirectory + "storages");
-    if (storagesConfigFs.is_open())
+    // Add Storages from storages configuration file
+    try
     {
-        while (std::getline(storagesConfigFs, line))
+        // Read Storages configuration file
+        std::ifstream storagesConfigFs(configsDirectory + "storages");
+        if (storagesConfigFs.is_open())
         {
-            if (line[0] == '#')
+            while (std::getline(storagesConfigFs, line))
             {
-                continue;
+                // if line started with #, then discard this line
+                // # is used as user configuration description
+                if (line[0] == '#')
+                {
+                    continue;
+                }
+                std::istringstream linestream(line);
+                std::string storageModel{};
+                std::string productionModel{};
+                geometry_msgs::Pose storagePose{};
+                geometry_msgs::Pose productOutputPose{};
+                std::string psx{};
+                std::string psy{};
+                std::string psz{};
+                std::string osx{};
+                std::string osy{};
+                std::string osz{};
+                std::string ppx{};
+                std::string ppy{};
+                std::string ppz{};
+                std::string opx{};
+                std::string opy{};
+                std::string opz{};
+
+                // Get the Storage model name
+                linestream >> storageModel;
+
+                // Get the Storage's Product name that will be used in Production
+                linestream >> productionModel;
+
+                // Get the X, Y and Z position and orientation coordinates of the Storage
+                linestream >> psx >> psy >> psz >> osx >> osy >> osz;
+                storagePose = GetPoseFromString(std::stof(psx),std::stof(psy),std::stof(psz),std::stof(osx),std::stof(osy),std::stof(osz));
+
+                // Get the X, Y and Z position and orientation coordinates where the produced Products will be spawned when requested
+                linestream >> ppx >> ppy >> ppz >> opx >> opy >> opz;
+                productOutputPose = GetPoseFromString(std::stof(ppx),std::stof(ppy),std::stof(ppz),std::stof(opx),std::stof(opy),std::stof(opz));
+
+                // Add a new Storage to the Storages Vector
+                storages.push_back(std::make_shared<Storage>(storageModel, productionModel, storagePose, productOutputPose, modelController));
             }
-            std::istringstream linestream(line);
-            std::string storageModel{};
-            std::string productionModel{};
-            geometry_msgs::Pose storagePose{};
-            geometry_msgs::Pose productOutputPose{};
-            std::string psx{};
-            std::string psy{};
-            std::string psz{};
-            std::string ppx{};
-            std::string ppy{};
-            std::string ppz{};
-
-            linestream >> storageModel;
-
-            linestream >> productionModel;
-
-            linestream >> psx >> psy >> psz;
-            storagePose.position.x = std::stof(psx);
-            storagePose.position.y = std::stof(psy);
-            storagePose.position.z = std::stof(psz);
-
-            linestream >> ppx >> ppy >> ppz;
-            productOutputPose.position.x = std::stof(ppx);
-            productOutputPose.position.y = std::stof(ppy);
-            productOutputPose.position.z = std::stof(ppz);
-
-            storages.push_back(std::make_shared<Storage>(storageModel, productionModel, storagePose, productOutputPose, modelController));
         }
+        storagesConfigFs.close();
     }
-    storagesConfigFs.close();
-
-    std::ifstream dispatchesConfigFs(configsDirectory + "dispatches");
-    if (dispatchesConfigFs.is_open())
+    // If any problem/exception happened, then return false to abort the simulation
+    catch (const std::exception &e)
     {
-        while (std::getline(dispatchesConfigFs, line))
-        {
-            if (line[0] == '#')
-            {
-                continue;
-            }
-            std::istringstream linestream(line);
-            std::string dispatchModel{};
-            geometry_msgs::Pose dispatchPose{};
-            std::string psx{};
-            std::string psy{};
-            std::string psz{};
-
-            linestream >> dispatchModel;
-
-            linestream >> psx >> psy >> psz;
-            dispatchPose.position.x = std::stof(psx);
-            dispatchPose.position.y = std::stof(psy);
-            dispatchPose.position.z = std::stof(psz);
-
-            dispatches.push_back(std::make_shared<Dispatch>(dispatchModel, dispatchPose, modelController));
-        }
+        // Convert exception to a readable string and print a message
+        std::ostringstream s;
+        s << e.what() ;
+        Print("Error while instantiating a Dispatch: " + s.str());
+        return false;
     }
-    dispatchesConfigFs.close();
-}
 
-void mySigintHandler(int sig)
-{
-    std::cout << "Simulation is being shut down" << std::endl;
-    isShutdown = true;
-    // ros::shutdown();
+    // Add Dispatches from dispatches configuration file
+    try
+    {
+        // Read Dispatches configuration file
+        std::ifstream dispatchesConfigFs(configsDirectory + "dispatches");
+        if (dispatchesConfigFs.is_open())
+        {
+            while (std::getline(dispatchesConfigFs, line))
+            {
+                // if line started with #, then discard this line
+                // # is used as user configuration description
+                if (line[0] == '#')
+                {
+                    continue;
+                }
+                std::istringstream linestream(line);
+                std::string dispatchModel{};
+                geometry_msgs::Pose dispatchPose{};
+                geometry_msgs::Pose productPickPose{};
+                std::string pdx{};
+                std::string pdy{};
+                std::string pdz{};
+                std::string odx{};
+                std::string ody{};
+                std::string odz{};
+                std::string ppx{};
+                std::string ppy{};
+                std::string ppz{};
+                std::string opx{};
+                std::string opy{};
+                std::string opz{};
+
+                // Get the Dispatch model name
+                linestream >> dispatchModel;
+
+                // Get the X, Y and Z position and orientation coordinates of the Dispatch
+                linestream >> pdx >> pdy >> pdz >> odx >> ody >> odz;
+                dispatchPose = GetPoseFromString(std::stof(pdx),std::stof(pdy),std::stof(pdz),std::stof(odx),std::stof(ody),std::stof(odz));
+
+                // Get the X, Y and Z position and orientation coordinates where the produced Products will be spawned when requested
+                linestream >> ppx >> ppy >> ppz >> opx >> opy >> opz;
+                productPickPose = GetPoseFromString(std::stof(ppx),std::stof(ppy),std::stof(ppz),std::stof(opx),std::stof(opy),std::stof(opz));
+                
+                // Add a new Dispatch to the Dispatches Vector
+                dispatches.push_back(std::make_shared<Dispatch>(dispatchModel, dispatchPose, productPickPose, modelController));
+            }
+        }
+        dispatchesConfigFs.close();
+    }
+    // If any problem happened, then return false to abort the simulation
+    catch (const std::exception &e)
+    {
+        // Convert exception to a readable string and print a message
+        std::ostringstream s;
+        s << e.what() ;
+        Print("Error while instantiating a Dispatch: " + s.str());
+        return false;
+    }
+
+    Print("Storages created: " + std::to_string(storages.size()));
+    Print("Dispatches created: " + std::to_string(dispatches.size()));
+    // If both Storages and Dispatches were instantiated properly, then return true
+    return true;
 }
 
 int main(int argc, char **argv)
 {
     // Initialize the WarehouseSimulation node and create a handle to it
+    // NoSigintHandler option is need to the process of clear spawned objects in gazebo before this ros node completely shutdown
     ros::init(argc, argv, "WarehouseSimulation", ros::init_options::NoSigintHandler);
     ros::NodeHandle n;
 
+    // Set the configuration directory
+    std::string configsDirectory{"/home/renato/catkin_ws/src/delivery_robot_simulation/configs/"};
+
     // Create an instance of the modelController
-    std::shared_ptr<Model> modelController = std::make_shared<Model>();
+    std::shared_ptr<ModelController> modelController = std::make_shared<ModelController>("ModelController");
 
     // Create and instance of the orderController
-    std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("warehouseOrderController");
+    std::shared_ptr<OrderController> orderController = std::make_shared<OrderController>("OrderController");
 
     // Create Storage objects containers
     std::vector<std::shared_ptr<Storage>> storages;
@@ -134,12 +232,20 @@ int main(int argc, char **argv)
     std::vector<std::shared_ptr<Robot>> robots;
 
     // Load models
-    loadModels(modelController);
+    LoadModels(modelController);
 
-    // Instantiate objects from config file
-    InstatiateWarehouseObjects(storages, dispatches, modelController, "/home/renato/catkin_ws/src/delivery_robot_simulation/configs/");
+    // Instantiate Storage and Dispatch objects from config file
+    // If any exception happened, end this simulation
+    bool readConfigFiles = InstatiateWarehouseObjects(storages, dispatches, modelController, configsDirectory);
+    if (!readConfigFiles)
+    {
+        Print("Please, check your configuration files and try again");
+        // finish this ros node
+        ros::shutdown();
+        return 0;
+    }
 
-    // Create a Robot Object and configure it
+    // Create a Robot Object and configure it. Robot has to be already spawned in Gazebo and its AMCL node running properly
     robots.emplace_back(std::make_shared<Robot>("amr", "move_base", storages, dispatches, orderController));
 
     // Spawn each Storage in simulation and start it's operation
@@ -147,7 +253,7 @@ int main(int argc, char **argv)
         modelController->Spawn(s->GetName(), s->GetModelName(), s->GetPose());
         s->StartOperation();
     });
-    
+
     // Spawn each Dispatch in simulation
     std::for_each(dispatches.begin(), dispatches.end(), [modelController](std::shared_ptr<Dispatch> &d) {
         modelController->Spawn(d->GetName(), d->GetModelName(), d->GetPose());
@@ -161,8 +267,9 @@ int main(int argc, char **argv)
     ros::Subscriber ordersSubscriber = n.subscribe("warehouse/order/add", 10, &OrderController::AddOrder, &*orderController);
 
     // Set a sigHandler to handle CRTL+C
-    signal(SIGINT, mySigintHandler);
+    signal(SIGINT, SigintHandler);
 
+    // Keep running ros spinOnce at 10hz and until isShutdown is not set true by SIGINT handler
     ros::Rate loop_rate(10);
     while (ros::ok() && !isShutdown)
     {
@@ -170,6 +277,7 @@ int main(int argc, char **argv)
         loop_rate.sleep();
     }
 
+    // Start the shutting down process by deleting each spawned object from simulation
     std::for_each(storages.begin(), storages.end(), [modelController](std::shared_ptr<Storage> &s) {
         modelController->Delete(s->GetName());
     });
@@ -178,14 +286,22 @@ int main(int argc, char **argv)
         modelController->Delete(d->GetName());
     });
 
+    // Check if there is any Product in the robots and delete it
     std::for_each(robots.begin(), robots.end(), [modelController](std::shared_ptr<Robot> &r) {
         std::vector<std::string> productsName = r->GetCargoBinProductsName();
-        for(auto &p:productsName){
-        modelController->Delete(p);
+        if (productsName.size() > 0)
+        {
+            // Iterate over productsName and request modelController Delete
+            for (auto &p : productsName)
+            {
+                modelController->Delete(p);
+            }
         }
     });
+
+    // Wait a bit more to guarantee the modelController delete requests be done
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    
+
     // After Delete spawned models in Gazebo, then completely shutdown this ros node
     ros::shutdown();
     return 0;

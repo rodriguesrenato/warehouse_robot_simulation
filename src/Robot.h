@@ -51,7 +51,7 @@ private:
     std::vector<std::shared_ptr<Storage>> _storages;         // Vector of available Storage
     std::vector<std::shared_ptr<Dispatch>> _dispatches;      // Vector of available Dispatch
     std::shared_ptr<OrderController> _orderController;       // OrderController
-    RobotStatus _status{RobotStatus::standby};                 // Current RobotStatus
+    RobotStatus _status{RobotStatus::offline};               // Current RobotStatus
     std::shared_ptr<Order> _order;                           // Current Order
     std::mutex _cargoBinMtx;                                 // Mutex to access and modify _cargoBinProducts
     std::vector<std::unique_ptr<Product>> _cargoBinProducts; // Products stored in the robot cargo bin

@@ -15,19 +15,25 @@
 #include "OrderController.h"
 #include "Order.h"
 
+// Define an unique OrderController name
 OrderController::OrderController(std::string orderControllerName)
 {
-    _orderControllerName = orderControllerName + "#" + std::to_string(_id);
     _objectName = orderControllerName + "#" + std::to_string(_id);
 }
+
 OrderController::~OrderController()
 {
-    Print("Destructor");
+    Print("Shutting down");
 }
 
+// Process an Order received from ros and add it to _queue
 void OrderController::AddOrder(const std_msgs::String &str)
 {
-    std::shared_ptr<Order> order = std::make_shared<Order>("order");
+    // Create and empty Order
+    std::shared_ptr<Order> order = std::make_shared<Order>("RosOrder");
+
+    // Parse the order received in plain string format:
+    // TargetDispatchName Product1Name Product1Quantity Product2Name Product2Quantity ...
     try
     {
         std::istringstream stream(str.data);
@@ -35,79 +41,106 @@ void OrderController::AddOrder(const std_msgs::String &str)
         if (stream)
         {
             stream >> val;
+
+            // Set first val as TargetDispatchName
             order->SetGoalDispatchName(val);
+
+            // Then parse all following listed Products
             while (!stream.eof())
             {
                 std::string product;
-                std::string productQuantity;
+                std::string productQuantityStr;
+                stream >> product >> productQuantityStr;
 
-                stream >> product >> productQuantity;
+                int productQuantity = stoi(productQuantityStr);
 
-                // TODO: validate order values, discard not valid prod and quant
-                order->AddProduct(product, stoi(productQuantity));
+                // If quantity is greater than zero, then add this product to the order
+                if (productQuantity > 0)
+                {
+                    order->AddProduct(product, productQuantity);
+                }
             }
         }
     }
+    // If any parsing error occurred, then discard this order request
     catch (...)
     {
         Print("Could not process this Order request: " + str.data);
         return;
     }
 
+    // If the parsed order has more than one product, then add it to the end of queue
     if (order->GetProductList().bucket_count() > 0)
     {
         std::lock_guard<std::mutex> lck(_queueMtx);
         _queue.push_back(std::move(order));
         _queueCond.notify_one();
 
-        Print(_queue.back()->GetName() + " was added to queue[" + std::to_string(_queue.size()) + "]");
+        Print(_queue.back()->GetName() + "|"+_queue.back()->GetGoalDispatchName()+" was added to queue[" + std::to_string(_queue.size()) + "]");
     }
 }
 
-std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName) // TODO: Usar aqui as condition variables para que os robos facam as requests e aguardem um order chegar
+// Remove the order from _ordersTracking
+void OrderController::CloseOrder(std::shared_ptr<Order> order)
+{
+    // Find the Order position in _ordersTracking vector and erase it
+    std::vector<std::shared_ptr<Order>>::iterator pos = std::find(_ordersTracking.begin(), _ordersTracking.end(), order);
+    if (pos != _ordersTracking.end())
+        _ordersTracking.erase(pos);
+}
+
+// Return a vector of orders that are being tracked
+std::vector<std::shared_ptr<Order>> OrderController::GetOrdersTracking()
+{
+    return _ordersTracking;
+}
+
+// Return the next Order in the queue
+std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName)
 {
     Print(robotName + " is requesting an Order");
+
+    // Use a condition variable to wait until the queue is not empty
     std::unique_lock<std::mutex> uLck(_queueMtx);
     _queueCond.wait(uLck, [this] { return !_queue.empty(); });
 
+    // Get the first Order from queue and release the lock
     std::shared_ptr<Order> order = std::move(_queue.front());
     _queue.pop_front();
+    uLck.unlock();
 
+    // Set the robotName that is requesting the order
     order->SetRobotWorkerName(robotName);
-    _orders.push_back(order);
+    _ordersTracking.push_back(order);
 
-    Print(order->GetName() + " given to " + robotName);
+    Print(order->GetName() + " is given to " + robotName);
 
     return order;
 }
 
+// Return the next Order in the queue with a timeout option that returns a nullptr if _queue still empty
 std::shared_ptr<Order> OrderController::RequestNextOrderWithTimeout(std::string robotName, int timeoutMs) // TODO: Usar aqui as condition variables para que os robos facam as requests e aguardem um order chegar
 {
-    // Print(robotName + " is requesting an Order with timeout of " + std::to_string(timeoutMs) + "ms");
-    
+    // Use a condition variable to wait until the queue is not empty
     std::unique_lock<std::mutex> uLck(_queueMtx);
     auto cv = _queueCond.wait_for(uLck, std::chrono::milliseconds(timeoutMs));
 
-    // if timeout, return a nullptr
-    if (cv == std::cv_status::timeout)
+    // If order queue is empty, then return a nullptr
+    if (_queue.empty())
     {
         return nullptr;
     }
 
+    // Get the first Order from queue and release the lock
     std::shared_ptr<Order> order = std::move(_queue.front());
     _queue.pop_front();
+    uLck.unlock();
 
+    // Set the robotName that is requesting the order
     order->SetRobotWorkerName(robotName);
-    _orders.push_back(order);
+    _ordersTracking.push_back(order);
 
     Print(order->GetName() + " was given to " + robotName);
 
     return order;
-}
-void OrderController::CloseOrder(std::shared_ptr<Order> order)
-{
-    // TODO
-    std::vector<std::shared_ptr<Order>>::iterator pos = std::find(_orders.begin(), _orders.end(), order);
-    if (pos != _orders.end())
-        _orders.erase(pos);
 }

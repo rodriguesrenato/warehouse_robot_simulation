@@ -1,6 +1,7 @@
 #include "Storage.h"
 
-Storage::Storage(std::string modelName, std::string productModelName, geometry_msgs::Pose storagePose, geometry_msgs::Pose productOutputPose, std::shared_ptr<Model> modelController)
+// Define an unique Storage name and set class attributes
+Storage::Storage(std::string modelName, std::string productModelName, geometry_msgs::Pose storagePose, geometry_msgs::Pose productOutputPose, std::shared_ptr<ModelController> modelController)
 {
     _objectName = modelName + "#" + std::to_string(_id); // Create a unique storage name
     _type = ObjectType::objectStorage;                   // Set its object type
@@ -17,12 +18,6 @@ Storage::~Storage()
 
     // Clear _productionModelName to safely finish production thread
     _productionModelName.clear();
-}
-
-// Return the Storage name
-std::string Storage::GetName()
-{
-    return _objectName;
 }
 
 // Return the Storage model name
@@ -79,7 +74,7 @@ void Storage::StartOperation()
 // Adds a Product to _storedProducts on fixed time until Storage reach max capacity
 void Storage::Production()
 {
-    Print("Start " + _productionModelName + " production");
+    Print("Starting " + _productionModelName + " production");
 
     // Keep producing Products until _productionModelName gets empty
     while (!_productionModelName.empty())
@@ -93,7 +88,8 @@ void Storage::Production()
             // Add a new Product to _storedProducts
             std::unique_ptr<Product> product(new Product(_productionModelName));
             _storedProducts.push_back(std::move(product));
-            Print(_storedProducts.back()->GetName() + " was produced - Total storage size is [" + std::to_string(_storedProducts.size()) + "]");
+            // Print(_storedProducts.back()->GetName() + " was produced - Total storage size is [" + std::to_string(_storedProducts.size()) + "]");
         }
     }
+    Print("Stopped " + _productionModelName + " production");
 }

@@ -19,10 +19,10 @@
 #include "OrderController.h"
 #include "Storage.h"
 #include "Product.h"
-#include "Model.h"
+#include "ModelController.h"
 #include "WarehouseObject.h"
 
-// Define a unique robot name, set the respective move_base action serve name and others warehouse objects shared pointers
+// Define an unique robot name, set the respective move_base action serve name and others warehouse objects shared pointers
 Robot::Robot(std::string robotName, std::string actionName, std::vector<std::shared_ptr<Storage>> &storages, std::vector<std::shared_ptr<Dispatch>> &dispatches, std::shared_ptr<OrderController> orderController)
 {
     _objectName = robotName + "#" + std::to_string(_id);
@@ -101,9 +101,6 @@ std::deque<std::shared_ptr<Storage>> Robot::GetStoragesToGo()
 // Move Robot to the desired goal Pose
 bool Robot::Move(actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> &ac, geometry_msgs::Pose goal)
 {
-    // Convert Pose orientation to quaternion
-    tf2::Quaternion quaternion;
-    quaternion.setRPY(goal.orientation.x, goal.orientation.y, goal.orientation.z);
 
     // define a MoveBaseGoal from goal
     move_base_msgs::MoveBaseGoal mbGoal;
@@ -112,10 +109,11 @@ bool Robot::Move(actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> &
     mbGoal.target_pose.pose.position.x = goal.position.x;
     mbGoal.target_pose.pose.position.y = goal.position.y;
     mbGoal.target_pose.pose.position.z = goal.position.z;
-    mbGoal.target_pose.pose.orientation.x = quaternion.x();
-    mbGoal.target_pose.pose.orientation.y = quaternion.y();
-    mbGoal.target_pose.pose.orientation.z = quaternion.z();
-    mbGoal.target_pose.pose.orientation.w = quaternion.w();
+    mbGoal.target_pose.pose.orientation.x = goal.orientation.x;
+    mbGoal.target_pose.pose.orientation.y = goal.orientation.y;
+    mbGoal.target_pose.pose.orientation.z = goal.orientation.z;
+    mbGoal.target_pose.pose.orientation.w = goal.orientation.w;
+    // mbGoal.target_pose.pose = goal;
 
     // Send the MoveBaseGoal to the SimpleActionClient and wait for thr result
     ac.sendGoal(mbGoal);
@@ -182,6 +180,14 @@ void Robot::Operate()
             // Get a queue of storages that has order's products
             storagesToGo = this->GetStoragesToGo();
 
+            // Check if valid Storages were found to collect products, otherwise discard current order
+            if (storagesToGo.empty())
+            {
+                Print("Could not find any Storages to get this order Products, discarding " + _order->GetName() + " order");
+                _status = RobotStatus::requestOrder;
+                break;
+            }
+
             // Set targetDispatch by dispatch modelName
             for (std::shared_ptr<Dispatch> &d : _dispatches)
             {
@@ -190,6 +196,14 @@ void Robot::Operate()
                     targetDispatch = d;
                 }
             }
+
+            // Check if Dispatch was found, otherwise discard current order
+            if(targetDispatch == nullptr){
+                Print("Could not find any Dispatch of type "+_order->GetGoalDispatchName()+", discarding " + _order->GetName() + " order");
+                _status = RobotStatus::requestOrder;
+                break;
+            }
+
             _status = RobotStatus::plan;
             break;
 
@@ -226,7 +240,7 @@ void Robot::Operate()
         // Move robot to the targetStorage
         case RobotStatus::moveToStorage:
 
-            Print(" Moving to " + targetStorage->GetName());
+            Print("Moving to " + targetStorage->GetName());
             if (Move(ac, targetStorage->GetProductOutputPose()))
             {
                 Print("Arrive at " + targetStorage->GetName() + ", requesting products");
@@ -282,8 +296,8 @@ void Robot::Operate()
         // After get all products in the order, move to the target Dispatch area
         case RobotStatus::moveToDispatch:
 
-            Print(" Moving to " + targetDispatch->GetName());
-            if (Move(ac, targetDispatch->GetPose()))
+            Print("Moving to " + targetDispatch->GetName());
+            if (Move(ac, targetDispatch->GetPickPose()))
             {
                 Print("Arrive at " + targetDispatch->GetName() + ", dispatch" + std::to_string(_cargoBinProducts.size()) + " products");
                 _status = RobotStatus::dispatchOrder;
@@ -313,7 +327,11 @@ void Robot::Operate()
                 // Simulate a small delay between deliveries and move Product from robot cargo bed to Dispatch
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
+
             Print(_order->GetName() + " is completed!");
+            
+            // Close current Order on orderController and reset _order
+            _orderController->CloseOrder(_order);
             _order.reset();
 
             // After the current order gets completed, request a new one
