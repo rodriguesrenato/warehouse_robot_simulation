@@ -1,8 +1,0 @@
-prefix=/home/renato/catkin_ws/src/deliver-robot-simulation/build/devel
-
-Name: deliver-robot-simulation
-Description: Description of deliver-robot-simulation
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
