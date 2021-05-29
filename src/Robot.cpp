@@ -184,7 +184,7 @@ void Robot::Operate()
             if (storagesToGo.empty())
             {
                 Print("Could not find any Storages to get this order Products, discarding " + _order->GetName() + " order");
-                _status = RobotStatus::requestOrder;
+                _status = RobotStatus::closeOrder;
                 break;
             }
 
@@ -200,7 +200,7 @@ void Robot::Operate()
             // Check if Dispatch was found, otherwise discard current order
             if(targetDispatch == nullptr){
                 Print("Could not find any Dispatch of type "+_order->GetGoalDispatchName()+", discarding " + _order->GetName() + " order");
-                _status = RobotStatus::requestOrder;
+                _status = RobotStatus::closeOrder;
                 break;
             }
 
@@ -329,6 +329,12 @@ void Robot::Operate()
             }
 
             Print(_order->GetName() + " is completed!");
+
+            _status = RobotStatus::closeOrder;
+            break;
+        
+        // Close current Order
+        case RobotStatus::closeOrder:
             
             // Close current Order on orderController and reset _order
             _orderController->CloseOrder(_order);

@@ -33,6 +33,7 @@ enum RobotStatus
     requestProduct,
     moveToDispatch,
     dispatchOrder,
+    closeOrder,
 };
 
 // Autonomous Mobile Robot class
