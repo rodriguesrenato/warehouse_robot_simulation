@@ -11,10 +11,10 @@
   <arg name="yaw" default="0"/>
 
  <!-- Launch other relevant files-->
-  <include file="$(find delivery_robot_simulation)/launch/robot_description.launch"/>
+  <include file="$(find warehouse_robot_simulation)/launch/robot_description.launch"/>
 
   <!-- send urdf to param server -->
-  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find delivery_robot_simulation)/models/urdf/delivery_robot.xacro'" />
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find warehouse_robot_simulation)/models/urdf/delivery_robot.xacro'" />
  
   <!-- Spawn My Robot -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(delivery_robot_simulation)
+project(warehouse_robot_simulation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -106,7 +106,7 @@ find_package(Threads REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES delivery-robot-simulation
+#  LIBRARIES warehouse-robot-simulation
 #  CATKIN_DEPENDS gazebo_ros roscpp std_msgs
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/delivery-robot-simulation.cpp
+#   src/${PROJECT_NAME}/warehouse-robot-simulation.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,7 +135,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/delivery-robot-simulation_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/warehouse-robot-simulation_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -199,7 +199,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_delivery-robot-simulation.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_warehouse-robot-simulation.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -209,4 +209,4 @@ include_directories(
 
 add_executable(WarehouseSimulation src/WarehouseSimulation.cpp src/ModelController.cpp src/Product.cpp src/Storage.cpp src/Dispatch.cpp src/WarehouseObject.cpp src/Order.cpp src/OrderController.cpp src/Robot.cpp)
 target_link_libraries(WarehouseSimulation ${catkin_LIBRARIES} Threads::Threads)
-#add_dependencies(WarehouseSimulation delivery_robot_simulator_generate_messages_cpp)
+#add_dependencies(WarehouseSimulation warehouse_robot_simulator_generate_messages_cpp)

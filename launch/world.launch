@@ -3,7 +3,7 @@
 <launch>
 
   <!-- World File -->
-  <arg name="world_file" default="$(find delivery_robot_simulation)/worlds/warehouse.world"/>
+  <arg name="world_file" default="$(find warehouse_robot_simulation)/worlds/warehouse.world"/>
 
   <!-- Launch Gazebo World -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">

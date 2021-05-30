@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Map Server -->
-    <arg name="map_file" default="$(find delivery_robot_simulation)/maps/warehouse.yaml"/>
+    <arg name="map_file" default="$(find warehouse_robot_simulation)/maps/warehouse.yaml"/>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
 
     <!-- AMCL Node -->
@@ -38,14 +38,14 @@
     <arg name="odom_topic" default="odom" />
     <arg name="laser_topic" default="scan" />
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/local_costmap_params.yaml" command="load" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/global_costmap_params.yaml" command="load" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/dwa_local_planner_params.yaml" command="load" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/move_base_params.yaml" command="load" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/global_planner_params.yaml" command="load" />
-        <rosparam file="$(find delivery_robot_simulation)/navigation/params/navfn_global_planner_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/dwa_local_planner_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/move_base_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/global_planner_params.yaml" command="load" />
+        <rosparam file="$(find warehouse_robot_simulation)/navigation/params/navfn_global_planner_params.yaml" command="load" />
 
         <!-- reset frame_id parameters using user input data -->
         <param name="global_costmap/global_frame" value="$(arg global_frame_id)"/>
