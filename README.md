@@ -1,37 +1,114 @@
 # warehouse_robot_simulation
 
+![]()
+
 This project consists of a automated warehouse simulation with an autonomous mobile robot that handles `Orders` requests to get the required `Products` at the `Storages` available and deliver them in the right `Dispatch` area.
 
 > This project were developed to be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree program. I chose to develop this project in the mobile robotics context with everything I've learned from the Udacity Robotic Software Engineer Nanodegree Program, which I had the chance to develop a home service robot simulation (repo [here](https://github.com/rodriguesrenato/rse-nd-home-service-robot)) that navigates autonomously between two goals pose.
 
+# Dependencies
+
+This project was built and was run on Ubuntu 18.04.5 LTS. The following dependencies/packages are required:
+
+- gcc/g++ >= 7.5.0
+- make >= 4.1
+- cmake >= 2.8
+- ROS Melodic
+- Gazebo 9.17.0
+- ROS Melodic Packages:
+    - amcl
+    - move_base
+    - map_server
+    - gmapping (optional)
+    - teleop_twist_keyboard (optional)
+
 # Installation
+
+Assuming your catkin workspace `catkin_ws` is located in `~/`, clone this repository and the official repositories bellow in src folder of your catkin workspace:
+
+```
+cd ~/catkin_ws/src
+git clone https://github.com/rodriguesrenato/warehouse_robot_simulation.git
+git clone https://github.com/ros-perception/slam_gmapping.git
+git clone https://github.com/ros-teleop/teleop_twist_keyboard
+```
+Then build and source it:
+
+```
+cd ~/catkin_ws
+catkin_make
+source devel/setup.bash
+```
+
+To run script files, make them executable first:
+
+```
+cd ~/catkin_ws/src/warehouse_robot_simulation/scripts
+chmod +x *.sh
+```
 
 # Usage
 
+To run the simulation, there are two options:
+
+- Open a terminal in the `scripts` folder and run `warehouse_simulation.sh`:
+
+    ```
+    ./warehouse_simulation.sh
+    ``` 
+
+- Launch the following `.launch` files in the specified sequence:
+
+    1. `roslaunch warehouse_robot_simulation world.launch`: Launch Gazebo and load the world `warehouse.world` file.
+    2. `roslaunch warehouse_robot_simulation robot_spawner.launch`: Spawn the robot in the simulation.
+    3. `roslaunch warehouse_robot_simulation amcl.launch`:Start AMCL and move_base nodes
+    4. `roslaunch warehouse_robot_simulation warehouse_simulation.launch`
+
+To send an Order to the OrderController, the simplest way is to directly publish in terminal. The Order is defined as a one line plain string following this pattern bellow:
+
+`target_dispatch_model_name product product_quantity product_n product_n_quantity`
+
+- Example Order: `DispatchA ProductR 3 ProductG 5`
+    - Run: `rostopic pub /warehouse/order/add std_msgs/String "data: 'DispatchA ProductR 3 ProductG 5'" `
+
+- If you try to send an Order with invalid Dispatch, Product or quantity, this order will be discarded
+
+If you want to check the navigation in rviz, run: 
+
+```
+roslaunch warehouse_robot_simulation view_navigation.launch
+```
+
+If you want to generate a new map files using SLAM gmapping, follow the step bellow:
+
+- Open terminal in scripts fodler and run the mapping script: `./mapping_slam.sh` 
+    - It launches the world and robot in Gazebo, then runs `slam_gmapping.launch`
+
+- Navigate robot using teleop keyboard through your map until cover most of the areas. If the generated map showed in Rviz isn't good enough, adjusts gmapping params in `slam_gmapping.launch` file and restart this process.
+
+- If the generated map showed in Rviz is good enough, open a new terminal, change director to the `map` folder of this project, then save your new map by running the following command:
+
+```
+rosrun map_server map_saver -f warehouse.
+```
+
 # Simulation
 
-The simulation has the following components:
+The simulation has the following main components:
 - Warehouse world in Gazebo
 - URDF Robot
 - AMCL and Navigation nodes
-- Program C++ Classes
-    - Robot
-    - Storage
-    - Dispatch
-    - Product
-    - Order
-    - OrderController
-    - ModelController
+- WarehouseSimulation ROS node
 
 ## Warehouse World
 
-![Warehouse world](docs/images/warehouse_world.png)
+![Warehouse world](docs/images/warehouse_world2.png)
 
 The world was built in a simplified version of a warehouse and was designed in a way that Storages area will be at the right side of the image above and Dispatch areas on the left, so robot will have to navigate through aisles to get the products and deviler them on the left side of the open area, similar to some logistics warehouse configurations.
 
 ## URDF Robot
 
-![URDF Robot](docs/images/urdf_robot.png)
+![URDF Robot](docs/images/urdf_robot2.png)
 
 The robot was designed in a two wheeled configuration with ball caster wheels at edges, a cargo bed at the back and two sensors for mapping and localization (camera and Lidar). 
 
@@ -47,7 +124,7 @@ Navigation parameters were based on the koburi/turtlebot navigation parameters a
 
 ## WarehouseSimulation ROS node
 
-This simulation was developed using ROS with C++ and Gazebo. All objects in the simulation are instantiated/handled in the warehouseSimulation node, except the robot and localization/navigation nodes that has to be launched previously. The diagram bellow shows the node main operation flow.
+This is the main simulation node and was developed using ROS with C++. All objects in the simulation are instantiated/handled in the warehouseSimulation node, except the robot and localization/navigation nodes that has to be launched previously. The diagram bellow shows the node main operation flow.
 
 !(warehouse simulation diagram)[]
 
@@ -75,6 +152,15 @@ This simulation was developed using ROS with C++ and Gazebo. All objects in the 
 ## C++ Classes Structue
 
 A brief explanation of each implemented class
+- Program C++ Classes
+    - WarehouseObject
+    - Robot
+    - Storage
+    - Dispatch
+    - Product
+    - Order
+    - OrderController
+    - ModelController
 
 ### WarehouseObject
 
@@ -82,9 +168,11 @@ This is the base class for all objects and controller of this simulation. It is 
 
 ### Robot
 
+![URDF Robot](docs/images/urdf_robot2.png)
+
 In this simulation, a two wheeled mobile Robot is used. It has a cargo bed at the back to carry `Products`, a Lidar and camera sensors to localize itself in the enviroment and navigate, and it can interact with other `Warehouse Objects`.
 
-The Robot class has a member functions to set/return it's status, return a list of Product names that is in the cargo bed and the StartOperation member function responsible for start a thread running `Operate()`. It also has private member functions that builds a vector of Storages that have the Products in the current order; interacts with SimpleActionClient to move the robot; and operate robot throught RobotStatus.
+The `Robot` class has a member functions to set/return it's status, return a list of Product names that is in the cargo bed and the StartOperation member function responsible for start a thread running `Operate()`. It also has private member functions that builds a vector of Storages that have the Products in the current order; interacts with SimpleActionClient to move the robot; and operate robot throught RobotStatus.
 
 In the `Operate()` private member function, a state machine of `RobotStatus` was implemented, which runs continuously until _status be set as `offline`. Each `RobotStatus` is responsible for a task listed bellow. Some operation variables are created before the state machine scope to be persistent between states looping. It was made with this strategy to continuously check if the robot _status was set to `offline` and then terminate this thread. When `Robot` Destructor is called, it set _status to `offline`.
 
@@ -110,56 +198,73 @@ In the `Operate()` private member function, a state machine of `RobotStatus` was
 
 - `closeOrder`: Close this order and set _state to `requestOrder` to request a new one.
 
-
 ### Storage
 
-A unit that continuously produces a specified `Product` until gets max capacity. It handles `Products` requests to spawn a `Product` at a specified `Product Output Pose`
+![Storage unit](docs/images/storage_unit2.png)
 
+The `Storage` class is responsible for Products production, storage and handling, defined on the class Constructor. 
+
+The `Production()` private member function continuously produces a specified `Product` until gets max capacity. This function is started in a thread by `StartOperation` public member function.
+
+The `RequestProduct()` public member function handles `Products` requests to spawn a `Product` at a specified `Product Output Pose`. It returns a `std::unique_ptr<Product>` that was produced, passing the ownership from Storage to the caller.
+
+It also has member functions to return it's pose and model name, and it's product output pose and model name.
 
 ### Dispatch
 
+![Storage unit](docs/images/dispatch_unit2.png)
 
-This class runs one thread to keep `Product` production.
+The `Dispatch` class is responsible for picking all Order Products from robot when requested by it's `PickProducts()` member function.
 
-- Next Step: Documentation
+It also has member functions to return it's pose and model name, and the pose to pick product.
 
 ### Product
 
+![Storage unit](docs/images/productR.png)
+
+The `Product` class is a simple representation of the products that will be handled during this simulation. It stores the product model name that is returned by `GetModelName()` member function.
 
 ### Order
 
+The `Order` class represents a single Order 'recipe' that contains the target Dispatch and an unordered map of Products and the respective quantities. It also store the information of which robot name is handling this Order.
+
 ### OrderController
+
+The `OrderController` is responsible for the management of the queue of Orders received and requested. 
+
+The Orders are added to the queue by `AddOrder()` member function, which is set as the callback function of the node handle subcribe function on the topic `warehouse/order/add`. To add an Order, publish a plain text on this topic following this sequence pattern, separating itens by a single space:
+
+`target_dispatch_model_name product product_quantity product_n product_n_quantity`
+
+Robots can request an Order in queue by calling `RequestNextOrder()` or `RequestNextOrderWithTimeout()`. In both member functions were implemented a conditional variable to wait for an Order available in the queue and avoid concurrency issues. The `RequestNextOrderWithTimeout()` is set an timeout time to avoid being stuck waiting for an Order and it's state machine implementation calls this function multiples times before gets the Order available. That permits the robot to do other tasks until an Order is available.
+
+For a future implementation of a graphical orders monitor, the function `GetOrdersTracking()` returns all Orders that are being handled by robots. That is the reason that Orders are created as `std::shared_ptr<Order>`, so it will make possible for an Order be processed collaboratively between multiple robots and the main controller.
 
 ### Model Controller
 
-# Development Process
+The `ModelController` class is responsible for interacting with Gazebo simulation .
 
-Plan the solution, design a first draft of the components, classes
+The `Add()` member function reads models XML file content and store it in a unordered map associated with it's model name as the key value.
 
-Design the warehouse simplified map
+The `Spawn()` member function receive the unique object name, the object's model name and the desired pose for the object to be spawned. This function gets the pre loaded model XML of the desired model name previously loaded and call the `GazeboSpawn()` private function, which is responsible for calling a ros service on `gazebo/spawn_sdf_model` topic with the right parameters to spawn this object in the simulation.
 
-Design the delivery robot with a container for the packages on the rear side
+The `Delete()` member function works likewise `Spawn()`, it calls `GazeboDelete()` private member function , which is responsible for calling a ros service on `gazebo/delete_model` topic for delete the object from simulation.
 
-Develop a ROS node that spawn/remove gazebo objects in the world -> Test the package beeing picking and drop-off in the robot's container
+There is also the `ReadModel()` private member function that reads a file at the specified filepath, convert the whole file content to string format and return it. This function is used by `Add()`.
 
-Map the warehouse with the delivery robot
+# Next Features to be Implemented
 
-Test AMCL and Navigation stack, based on the final project of the Udacity Robotic Software Engineer Nanodegree
-
-Define the picking points and model representation in the world
-
-Define Drop-off points and model representation in the world
-
-Build an UI screen in opencv to accept mouse clicks and show operation numbers
-
-Build the warehouse controller node
-
-# Next features
+- Launch robot and correspondent amcl/move_base nodes from the warehouseSimulation node
+- Design a complete operational Dashboard with ncurses to keep track of all warehouse objects
+- Multiple robots in simulation
+- Test other path planning algorithms to define 'lanes' and a waitting line at Storages and Dispatches.
 
 # License
+
 The contents of this repository are covered under the MIT License.
 
 # References
 
-- how to add threads to makefile https://stackoverflow.com/questions/67300703/how-do-i-use-the-pthreads-in-a-ros-c-node
-- Ros wiki (sigint)
+- Ros wiki: (http://wiki.ros.org/)
+- C++ references: (https://www.cplusplus.com/)
+- How to add compiler option `pthreads` in ros: (https://stackoverflow.com/questions/67300703/how-do-i-use-the-pthreads-in-a-ros-c-node)
