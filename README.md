@@ -29,10 +29,13 @@ Assuming your catkin workspace `catkin_ws` is located in `~/`, clone this reposi
 ```
 cd ~/catkin_ws/src
 git clone https://github.com/rodriguesrenato/warehouse_robot_simulation.git
-git clone https://github.com/ros-perception/slam_gmapping.git
-git clone https://github.com/ros-teleop/teleop_twist_keyboard
 ```
-- Note: If a different project directory was chosen, then you have to manually change the `projectDirectory` value in the `src/warehouseSimulation.cpp` file before build it. Consider that ROS executes nodes in `~/.ros` if you want to use relative paths.
+- Optional: If you plan to build and mapping a new map for this simulation, then also clone the following repositories:
+    ```
+    git clone https://github.com/ros-perception/slam_gmapping.git
+    git clone https://github.com/ros-teleop/teleop_twist_keyboard
+    ```
+- Note: If a different project directory was chosen, then you have to manually change the `projectDirectory` value in the `src/warehouseSimulation.cpp` file before build it. It was considered that ROS executes nodes in `~/.ros` to use relative paths.
 
 Then build and source it:
 
@@ -74,6 +77,8 @@ To send an Order to the OrderController, the simplest way is to directly publish
     - Run: `rostopic pub /warehouse/order/add std_msgs/String "data: 'DispatchA ProductR 3 ProductG 5'" `
 
 - If you try to send an Order with invalid Dispatch, Product or quantity, this order will be discarded
+
+To end the simulation, just hit **CTRL+C** on the terminal that is running WarehouseSimulation node and wait until it finishes the shutdown procedure.
 
 If you want to check the navigation in rviz, run: 
 
@@ -144,7 +149,7 @@ This is the main simulation node and was developed using ROS with C++. All objec
 
 8. A while loop keeps calling `ros::spinOnce()` to process a single round of ROS callbacks until global variable `isShutdown` is set or ROS shutdown.
 
-9. When `isShutdown` is set, iterates over all Storage, Dispatch and Robot to call delete models from Gazebo simulation
+9. When **CTRL+C** is hit,`isShutdown` is set true, iterates over all Storage, Dispatch and Robot to call delete models from Gazebo simulation
 
 10. After Delete spawned models in Gazebo, then completely shutdown this ros node by calling `ros::shutdown()`
 
