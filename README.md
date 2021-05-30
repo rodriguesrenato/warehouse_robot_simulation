@@ -304,6 +304,7 @@ There is also the `ReadModel()` private member function that reads a file at the
  
 - To work on the Udacity workspace, some path adjusts had to be made in the script file on the declared path (sourcing kinetic instead of melodic)
 - There is a screenshot of this project running on the Udacity workspace.
+![simulation running on Udacity workspace](docs/images/simulation_udacity_workspace.png)
 - Rviz visualization was removed from the script due to high processing.
 
 ## Loops, Functions, I/O
