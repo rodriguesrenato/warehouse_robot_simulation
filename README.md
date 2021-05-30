@@ -4,7 +4,7 @@
 
 This project consists of a automated warehouse simulation with an autonomous mobile robot that handles `Orders` requests to get the required `Products` at the `Storages` available and deliver them in the right `Dispatch` area.
 
-> This project were developed to be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree program. I chose to develop this project in the mobile robotics context with everything I've learned from the Udacity Robotic Software Engineer Nanodegree Program, which I had the chance to develop a home service robot simulation (repo [here](https://github.com/rodriguesrenato/rse-nd-home-service-robot)) that navigates autonomously between two goals pose.
+> This project were developed to be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree program. I chose to develop this project in the mobile robotics context with everything I've learned from the Udacity Robotic Software Engineer Nanodegree program, which I had the chance to develop a home service robot simulation (repo [here](https://github.com/rodriguesrenato/rse-nd-home-service-robot)) that navigates autonomously between two goals pose.
 
 # Dependencies
 
@@ -32,6 +32,8 @@ git clone https://github.com/rodriguesrenato/warehouse_robot_simulation.git
 git clone https://github.com/ros-perception/slam_gmapping.git
 git clone https://github.com/ros-teleop/teleop_twist_keyboard
 ```
+- Note: If a different project directory was chosen, then you have to manually change the `projectDirectory` value in the `src/warehouseSimulation.cpp` file before build it. Consider that ROS executes nodes in `~/.ros` if you want to use relative paths.
+
 Then build and source it:
 
 ```
@@ -40,7 +42,7 @@ catkin_make
 source devel/setup.bash
 ```
 
-To run script files, make them executable first:
+Finally, make script files executable before run them:
 
 ```
 cd ~/catkin_ws/src/warehouse_robot_simulation/scripts
@@ -124,9 +126,7 @@ Navigation parameters were based on the koburi/turtlebot navigation parameters a
 
 ## WarehouseSimulation ROS node
 
-This is the main simulation node and was developed using ROS with C++. All objects in the simulation are instantiated/handled in the warehouseSimulation node, except the robot and localization/navigation nodes that has to be launched previously. The diagram bellow shows the node main operation flow.
-
-!(warehouse simulation diagram)[]
+This is the main simulation node and was developed using ROS with C++. All objects in the simulation are instantiated/handled in the warehouseSimulation node, except the robot and localization/navigation nodes that has to be launched previously. The list bellow shows the node main operation flow.
 
 1. Initialize the WarehouseSimulation node and create the warehouse controllers and objects. 
 
@@ -164,7 +164,7 @@ A brief explanation of each implemented class
 
 ### WarehouseObject
 
-This is the base class for all objects and controller of this simulation. It is responsible for generating a unique id, printing messages in the terminal protected by a mutex through `Print()` member function, retrive it's unique name through `GetName()` and storing all started threads in a vector to build a thread barrier on it's Destructor. It was implemented a way of programatically end objects (`Storage` and `Robot`) member functions that were started in threads.
+This is the base class for all objects and controller of this simulation. It is responsible for generating a unique id, printing messages in the terminal protected by a mutex through `Print()` member function, retrive it's unique name through `GetName()` and storing all started threads in a vector to build a thread barrier on it's Destructor. It was implemented a way of programatically end objects (`Storage` and `Robot`) member functions that were started in threads (explained in next sections).
 
 ### Robot
 
@@ -175,6 +175,8 @@ In this simulation, a two wheeled mobile Robot is used. It has a cargo bed at th
 The `Robot` class has a member functions to set/return it's status, return a list of Product names that is in the cargo bed and the StartOperation member function responsible for start a thread running `Operate()`. It also has private member functions that builds a vector of Storages that have the Products in the current order; interacts with SimpleActionClient to move the robot; and operate robot throught RobotStatus.
 
 In the `Operate()` private member function, a state machine of `RobotStatus` was implemented, which runs continuously until _status be set as `offline`. Each `RobotStatus` is responsible for a task listed bellow. Some operation variables are created before the state machine scope to be persistent between states looping. It was made with this strategy to continuously check if the robot _status was set to `offline` and then terminate this thread. When `Robot` Destructor is called, it set _status to `offline`.
+
+Available `RobotStatus` tasks: 
 
 - `offline`: Robot is not operable and shutdown.
 
@@ -251,6 +253,45 @@ The `Spawn()` member function receive the unique object name, the object's model
 The `Delete()` member function works likewise `Spawn()`, it calls `GazeboDelete()` private member function , which is responsible for calling a ros service on `gazebo/delete_model` topic for delete the object from simulation.
 
 There is also the `ReadModel()` private member function that reads a file at the specified filepath, convert the whole file content to string format and return it. This function is used by `Add()`.
+
+# Modern C++ Features Implemented
+
+- All classes were designed and built using OOP. 
+
+- The warehouseObject class was designed to have common features and information between all other classes, like an `objectName` and a `Print()` function protected by a mutex. When the Destructor is called, it makes a thread barrier to guarantee that all started threads by the child class are finish before it goes out of scope.
+
+- The `WarehouseObject::Print()` is responsible to standarize the `std::cout` output in the format `[ObjectName] message`.
+
+- Two configuration files were created to define how many `Storages` and `Dispatches` will be created and also configure each of them, so it not needed to hardcode this configurations. These files are processed in the `warehouseSimulation.cpp`.
+
+- In the files read operations, a try catch expression was set to prevent from load wrong `Storage` and/or `Dispatch` configurations and string to int/float exceptions. In this case, it warns the user to fix the respective configuration file and finish the simulation before spawn any model to Gazebo.
+
+- All SDF models that will be used in the simulation are loaded and stored it's file XML content in the `ModelController` class to avoid read files multiple times. They are stored in a unordered_map dictionary, the keys of the content are the files name. The file name is defined as the model name.
+
+- All classes are instantiated as **shared pointers**, except the `Product` class. `Products` are unique objects in the simulation and only one class has to have the ownership of it, so they are always instantiated as **unique pointers** and **std::move** are used to pass its ownership between warehouse objects.
+
+- The **shared pointers** of classes created are copied to local member attributes in it's Constructor, to be used inside the class by it's member functions.
+
+- `Storage` and `Robot` class start threads in the simulation by it's `StartOperation()` member functions. 
+
+    - `Storage::StartOperation()` starts a thread to run the private member function `Production()`. This function runs an while loop until private attribute `_productionModelName` is empty (when Destructor is called,`_productionModelName` is cleared to finish this thread programatically). This loop keeps adding new `unique_ptr<Product>`, at a fixed rate of 2 seconds, to the private attribute `_storedProducts` until it reachs `_maxCapacity`.
+
+    - `Storage::_storedProducts` is always read/modified after a lock_guard be created with `Storage::_storageMtx` mutex. 
+
+    - `Robot::StartOperation()` starts a thread to run the private member function `Operate()`. This function runs an while loop until private attribute `_status` is empty (when Destructor is called,`_status` is set to `RobotStatus::offline` to finish this thread programatically).
+    This loop is responsible to cycle through RobotStatus tasks, designed to be a state machine behavior model. This approach was made to make possible multiple behaviours paths, accept external commands to change plans and constantly check when this thread needs to be eneded.
+
+    - `Robot::_cargoBinProducts` is always read/modified after a lock_guard or unique_lock be created with `Robot::_cargoBinMtx` mutex.
+
+- The `ModelController` class was built to handler everything related to Gazebo and it makes direct ros service calls to spawn and delete models form Gazebo. Due to complexity, robot spawing depends on other ros nodes like amcl and move_base, so this feature will be added in a future version.
+
+- The `OrderController` implements a queue that uses a **condition variable** and a **mutex** (`OrderController::_queueMtx`) to handle `Order` requests protected from concurrency bugs. 
+
+- The `OrderController::AddOrder()` receives a string message from ros and process it with `std::istringstream` to parse values and build the `Order`. This `Order` is added to the `OrderController::_queue` under the lock using `std::lock_guard` with the `OrderController::_queueMtx` mutex.
+
+- `Order` and `Product` classes are just simple classes that store it's object informations and be shared/moved throught other warehouse objects.
+
+- The `Dispatch::PickProduct()` member function just receive the moved `std::unique_ptr<Product>` and let this `Product` destructs at the end of scope. It's done because we don't have any action to do with this `Product` later in the simulation.
 
 # Next Features to be Implemented
 
