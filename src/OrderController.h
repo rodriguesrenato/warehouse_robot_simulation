@@ -30,6 +30,7 @@ private:
     std::deque<std::shared_ptr<Order>> _queue;           // Double ended queue that keep received Orders
     std::condition_variable _queueCond;                  // Condition variable to handle Order requests
     std::mutex _queueMtx;                                // Queue mutex
+    std::mutex _ordersTrackingMtx;                       // Orders tracking mutex
     std::vector<std::shared_ptr<Order>> _ordersTracking; // Vector of Orders that are being executed by robots
 };
 

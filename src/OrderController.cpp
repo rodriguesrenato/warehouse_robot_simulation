@@ -76,7 +76,7 @@ void OrderController::AddOrder(const std_msgs::String &str)
         _queue.push_back(std::move(order));
         _queueCond.notify_one();
 
-        Print(_queue.back()->GetName() + "|"+_queue.back()->GetGoalDispatchName()+" was added to queue[" + std::to_string(_queue.size()) + "]");
+        Print(_queue.back()->GetName() + "|" + _queue.back()->GetGoalDispatchName() + " was added to queue[" + std::to_string(_queue.size()) + "]");
     }
 }
 
@@ -84,14 +84,18 @@ void OrderController::AddOrder(const std_msgs::String &str)
 void OrderController::CloseOrder(std::shared_ptr<Order> order)
 {
     // Find the Order position in _ordersTracking vector and erase it
+    std::lock_guard<std::mutex> uTLck(_ordersTrackingMtx);
     std::vector<std::shared_ptr<Order>>::iterator pos = std::find(_ordersTracking.begin(), _ordersTracking.end(), order);
     if (pos != _ordersTracking.end())
+    {
         _ordersTracking.erase(pos);
+    }
 }
 
 // Return a vector of orders that are being tracked
 std::vector<std::shared_ptr<Order>> OrderController::GetOrdersTracking()
 {
+    std::lock_guard<std::mutex> uTLck(_ordersTrackingMtx);
     return _ordersTracking;
 }
 
@@ -102,7 +106,8 @@ std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName)
 
     // Use a condition variable to wait until the queue is not empty
     std::unique_lock<std::mutex> uLck(_queueMtx);
-    _queueCond.wait(uLck, [this] { return !_queue.empty(); });
+    _queueCond.wait(uLck, [this]
+                    { return !_queue.empty(); });
 
     // Get the first Order from queue and release the lock
     std::shared_ptr<Order> order = std::move(_queue.front());
@@ -111,7 +116,9 @@ std::shared_ptr<Order> OrderController::RequestNextOrder(std::string robotName)
 
     // Set the robotName that is requesting the order
     order->SetRobotWorkerName(robotName);
+    std::unique_lock<std::mutex> uTLck(_ordersTrackingMtx);
     _ordersTracking.push_back(order);
+    uTLck.unlock();
 
     Print(order->GetName() + " is given to " + robotName);
 
@@ -138,7 +145,9 @@ std::shared_ptr<Order> OrderController::RequestNextOrderWithTimeout(std::string 
 
     // Set the robotName that is requesting the order
     order->SetRobotWorkerName(robotName);
+    std::unique_lock<std::mutex> uTLck(_ordersTrackingMtx);
     _ordersTracking.push_back(order);
+    uTLck.unlock();
 
     Print(order->GetName() + " was given to " + robotName);
 
