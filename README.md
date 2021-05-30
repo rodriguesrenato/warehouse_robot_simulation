@@ -66,20 +66,22 @@ To run the simulation, there are two options:
 
     1. `roslaunch warehouse_robot_simulation world.launch`: Launch Gazebo and load the world `warehouse.world` file.
     2. `roslaunch warehouse_robot_simulation robot_spawner.launch`: Spawn the robot in the simulation.
-    3. `roslaunch warehouse_robot_simulation amcl.launch`:Start AMCL and move_base nodes
-    4. `roslaunch warehouse_robot_simulation warehouse_simulation.launch`
+    3. `roslaunch warehouse_robot_simulation amcl.launch`: Start AMCL and move_base nodes.
+    4. `roslaunch warehouse_robot_simulation warehouse_simulation.launch`: Start the warehouse simulation.
 
 The only way to interact externally with the simulation is to publish an `Order` message via ROS topic `/warehouse/order/add`. `Order` message will be received by the running `OrderController`.
 
 The simplest way is to directly publish a message to ros in the terminal. The `Order` is defined as a one line plain string following this pattern: `target_dispatch_model_name product product_quantity product_n product_n_quantity`
 
-So to publish the following example Order: `DispatchA ProductR 3 ProductG 5`, then run:
+So to publish the following example Order: `DispatchA ProductR 3 ProductG 5`, then run on a terminal:
 
 ```bash
 rostopic pub /warehouse/order/add std_msgs/String "data: 'DispatchA ProductR 3 ProductG 5'"
 ```
 
-- Model objects available for:
+- The command line above will place an `Order` in the simulation that contains 3 `ProductR` and 5 `ProductG` to be dispatched at `DispatchA`.
+
+- The following model objects available for build orders:
     - Products: `ProductR`,`ProductG` and `ProductB` 
     - Dispatches: `DispatchA` and `DispatchB` 
 
