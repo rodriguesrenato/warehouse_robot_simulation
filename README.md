@@ -62,21 +62,28 @@ To run the simulation, there are two options:
     ./warehouse_simulation.sh
     ``` 
 
-- Launch the following `.launch` files in the specified sequence:
+- Or launch the following `.launch` files in the specified sequence:
 
     1. `roslaunch warehouse_robot_simulation world.launch`: Launch Gazebo and load the world `warehouse.world` file.
     2. `roslaunch warehouse_robot_simulation robot_spawner.launch`: Spawn the robot in the simulation.
     3. `roslaunch warehouse_robot_simulation amcl.launch`:Start AMCL and move_base nodes
     4. `roslaunch warehouse_robot_simulation warehouse_simulation.launch`
 
-To send an Order to the OrderController, the simplest way is to directly publish in terminal. The Order is defined as a one line plain string following this pattern bellow:
+The only way to interact externally with the simulation is to publish an `Order` message via ROS topic `/warehouse/order/add`. `Order` message will be received by the running `OrderController`.
 
-`target_dispatch_model_name product product_quantity product_n product_n_quantity`
+The simplest way is to directly publish a message to ros in the terminal. The `Order` is defined as a one line plain string following this pattern: `target_dispatch_model_name product product_quantity product_n product_n_quantity`
 
-- Example Order: `DispatchA ProductR 3 ProductG 5`
-    - Run: `rostopic pub /warehouse/order/add std_msgs/String "data: 'DispatchA ProductR 3 ProductG 5'" `
+So to publish the following example Order: `DispatchA ProductR 3 ProductG 5`, then run:
 
-- If you try to send an Order with invalid Dispatch, Product or quantity, this order will be discarded
+```bash
+rostopic pub /warehouse/order/add std_msgs/String "data: 'DispatchA ProductR 3 ProductG 5'"
+```
+
+- Model objects available for:
+    - Products: `ProductR`,`ProductG` and `ProductB` 
+    - Dispatches: `DispatchA` and `DispatchB` 
+
+- If you try to send an Order with invalid Dispatch, Product or quantity, this order will be discarded internally by the simulation.
 
 To end the simulation, just hit **CTRL+C** on the terminal that is running WarehouseSimulation node and wait until it finishes the shutdown procedure.
 
