@@ -92,5 +92,5 @@ void Storage::Production()
             // Print(_storedProducts.back()->GetName() + " was produced - Total storage size is [" + std::to_string(_storedProducts.size()) + "]");
         }
     }
-    Print("Stopped " + _productionModelName + " production");
+    Print("Stopped production");
 }
