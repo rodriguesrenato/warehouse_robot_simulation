@@ -17,7 +17,7 @@
   <xacro:property name="caster_mass" value="0.1"/>
 
   <!-- Include gazebo properties -->
-  <xacro:include filename="$(find delivery_robot_simulation)/models/urdf/delivery_robot.gazebo" />
+  <xacro:include filename="$(find warehouse_robot_simulation)/models/urdf/delivery_robot.gazebo" />
 
   <!-- Define inertia macros  -->
   <xacro:macro name="cuboid_inertia" params="m x y z">
@@ -245,7 +245,7 @@
     <visual name='hokuyo_visual'>
       <origin xyz="0 0 0" rpy=" 0 0 0"/>
       <geometry>
-        <mesh filename="package://delivery_robot_simulation/models/meshes/hokuyo.dae"/>
+        <mesh filename="package://warehouse_robot_simulation/models/meshes/hokuyo.dae"/>
       </geometry>
     </visual>
 
