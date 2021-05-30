@@ -1,6 +1,6 @@
 # warehouse_robot_simulation
 
-![]()
+![Warehouse Simulation](docs/images/warehouse_simulation.png)
 
 This project consists of a automated warehouse simulation with an autonomous mobile robot that handles `Orders` requests to get the required `Products` at the `Storages` available and deliver them in the right `Dispatch` area.
 
@@ -102,13 +102,13 @@ The simulation has the following main components:
 
 ## Warehouse World
 
-![Warehouse world](docs/images/warehouse_world2.png)
+![Warehouse world](docs/images/warehouse_world.png)
 
 The world was built in a simplified version of a warehouse and was designed in a way that Storages area will be at the right side of the image above and Dispatch areas on the left, so robot will have to navigate through aisles to get the products and deviler them on the left side of the open area, similar to some logistics warehouse configurations.
 
 ## URDF Robot
 
-![URDF Robot](docs/images/urdf_robot2.png)
+![URDF Robot](docs/images/urdf_robot.png)
 
 The robot was designed in a two wheeled configuration with ball caster wheels at edges, a cargo bed at the back and two sensors for mapping and localization (camera and Lidar). 
 
@@ -168,7 +168,7 @@ This is the base class for all objects and controller of this simulation. It is 
 
 ### Robot
 
-![URDF Robot](docs/images/urdf_robot2.png)
+![URDF Robot](docs/images/urdf_robot.png)
 
 In this simulation, a two wheeled mobile Robot is used. It has a cargo bed at the back to carry `Products`, a Lidar and camera sensors to localize itself in the enviroment and navigate, and it can interact with other `Warehouse Objects`.
 
@@ -200,7 +200,7 @@ In the `Operate()` private member function, a state machine of `RobotStatus` was
 
 ### Storage
 
-![Storage unit](docs/images/storage_unit2.png)
+![Storage unit](docs/images/storage_unit.png)
 
 The `Storage` class is responsible for Products production, storage and handling, defined on the class Constructor. 
 
@@ -212,7 +212,7 @@ It also has member functions to return it's pose and model name, and it's produc
 
 ### Dispatch
 
-![Storage unit](docs/images/dispatch_unit2.png)
+![Storage unit](docs/images/dispatch_unit.png)
 
 The `Dispatch` class is responsible for picking all Order Products from robot when requested by it's `PickProducts()` member function.
 
