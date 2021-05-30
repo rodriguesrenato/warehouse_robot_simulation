@@ -298,6 +298,79 @@ There is also the `ReadModel()` private member function that reads a file at the
 
 - The `Dispatch::PickProduct()` member function just receive the moved `std::unique_ptr<Product>` and let this `Product` destructs at the end of scope. It's done because we don't have any action to do with this `Product` later in the simulation.
 
+# Project Rubrics points
+
+> The submission must compile and run.
+ 
+- To work on the Udacity workspace, some path adjusts had to be made in the script file on the declared path (sourcing kinetic instead of melodic)
+- There is a screenshot of this project running on the Udacity workspace.
+- Rviz visualization was removed from the script due to high processing.
+
+## Loops, Functions, I/O
+
+> The project demonstrates an understanding of C++ functions and control structures.
+
+- The project classes were well organized accordingly to their purpose in the simulation
+
+> The project reads data from a file and process the data, or the program writes data to a file.
+
+- `ModelController` class reads SDF model files and `WarehouseSimulation.cpp` reads two configuration files on local function `InstatiateWarehouseObjects`.
+
+## Object Oriented Programming
+
+> The project uses Object Oriented Programming techniques.
+
+- All classes were uses OOP and they are used in the `warehouseSimulation.cpp`.
+
+> Classes use appropriate access specifiers for class members.
+
+- All member attributes are accessed/modified externally by accessor and mutator functions.
+
+> Classes abstract implementation details from their interfaces.
+
+> Classes encapsulate behavior.
+
+> Classes follow an appropriate inheritance hierarchy.
+
+- All classes have `WarehouseObject` class as parent class
+
+## Memory Management
+
+> The project makes use of references in function declarations.
+
+> The project uses destructors appropriately.
+
+- `WarehouseObject` class uses Destructor to build a thread barrier and wait for all started threads finish.
+- On `Storage` and `Robot` class, the Destructor is used to set a member attribute to a value that will trigger all started thread by them to terminate during their internal cycles.
+
+> The project uses move semantics to move data, instead of copying it, where possible.
+
+- std:move is used to move `std::unique_ptr<Products>` objects between `Robot` (Robot.cpp line 278, 323), `Storage` (Storage.cpp line 57, 60, 91) and `Dispatch` objects. It's also used in `OrderController.cpp` (line 76, 113, 412) to move `Orders` in/out the `_queue` member attribute.
+
+> The project uses smart pointers instead of raw pointers.
+
+- Shared pointers are widely used and unique pointer is used to handler `Product` class.
+
+## Concurrency
+
+> The project uses multithreading.
+
+- `Storage.cpp` (line 72) and `Robot` (line 76) start threads in the simulation by it's `StartOperation()` member functions.
+
+> A mutex or lock is used in the project.
+
+- In `WarehouseObject.cpp` (line 38) to print to std::cout under the lock by using the `_coutMtx` mutex with `std::lock_guard`.
+
+- In `Storage.cpp` (lines 51, 86) to protected `_storedProducts` of concurrent access/modification by `Storage::Production()` and `Storage::RequestProduct()`.
+
+- In `Robot.cpp` (lines 58, 277, 322) to protected `_cargoBinProducts` of concurrent access/modification by `Robot::Operate()` and `GetCargoBinProductsName()`.
+
+- In `OrderController.cpp` (lines 75, 108, 132) to protect deque `_queue` and (lines 87, 98, 119, 148) to protect vector `_ordersTracking` from concurrent access/modification
+
+> A condition variable is used in the project.
+
+- It is used in `OrderController.cpp` to handler `Order` request from `Robots` (lines 109, 133) and to notify when a `Order` was added to the `_queue` (lines 77).
+
 # Next Features to be Implemented
 
 - Launch robot and correspondent amcl/move_base nodes from the warehouseSimulation node
