@@ -1,13 +1,14 @@
 #include "Storage.h"
 
 // Define an unique Storage name and set class attributes
-Storage::Storage(std::string modelName, std::string productModelName, geometry_msgs::Pose storagePose, geometry_msgs::Pose productOutputPose, std::shared_ptr<ModelController> modelController)
+Storage::Storage(std::string modelName, std::string productModelName, int maxCapacity, geometry_msgs::Pose storagePose, geometry_msgs::Pose productOutputPose, std::shared_ptr<ModelController> modelController)
 {
     _objectName = modelName + "#" + std::to_string(_id); // Create a unique storage name
     _type = ObjectType::objectStorage;                   // Set its object type
     _storageModelName = modelName;                       // Set its model Name
     _productionModelName = productModelName;             // Set the product model name to be in production
     _storagePose = storagePose;                          // Set the storage Pose
+    _maxCapacity = maxCapacity;                          // Set the storage max capacity of stored Products
     _productOutputPose = productOutputPose;              // Set the product output Pose
     _modelController = modelController;                  // Set the modelController shared pointer
 }
