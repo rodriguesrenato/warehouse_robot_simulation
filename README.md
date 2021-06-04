@@ -1,6 +1,6 @@
 # warehouse_robot_simulation
 
-![Warehouse Simulation](docs/images/warehouse_simulation.png)
+![Warehouse Simulation](docs/images/warehouse_simulation.gif)
 
 This project consists of a automated warehouse simulation with an autonomous mobile robot that handles `Orders` requests to get the required `Products` at the `Storages` available and deliver them in the right `Dispatch` area.
 
