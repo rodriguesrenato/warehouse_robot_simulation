@@ -30,11 +30,25 @@ Assuming your catkin workspace `catkin_ws` is located in `~/`, clone this reposi
 cd ~/catkin_ws/src
 git clone https://github.com/rodriguesrenato/warehouse_robot_simulation.git
 ```
+
 - Optional: If you plan to build and mapping a new map for this simulation, then also clone the following repositories:
     ```
     git clone https://github.com/ros-perception/slam_gmapping.git
     git clone https://github.com/ros-teleop/teleop_twist_keyboard
     ```
+
+It is also possible to install the *required* and *optional* libraries along the current ros installation via **apt-get** (Make sure to adjust the following commands to you ROS version):
+
+```
+sudo apt-get install ros-melodic-amcl
+sudo apt-get install ros-melodic-move-base
+sudo apt-get install ros-melodic-dwa-local-planner
+sudo apt-get install ros-melodic-map-server
+sudo apt-get install ros-melodic-teleop-twist-keyboard 
+sudo apt-get install ros-melodic-gmapping
+sudo apt-get install ros-melodic-slam-gmapping
+```
+
 - Note: If a different project directory was chosen, then you have to manually change the `projectDirectory` value in the `src/warehouseSimulation.cpp` file before build it. It was considered that ROS executes nodes in `~/.ros` to use relative paths.
 
 Then build and source it:
@@ -43,6 +57,12 @@ Then build and source it:
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
+```
+
+**Xterm** were used to execute launch files individually. If you dont have it installed, then run:
+
+```
+sudo apt-get install xterm
 ```
 
 Finally, make script files executable before run them:
