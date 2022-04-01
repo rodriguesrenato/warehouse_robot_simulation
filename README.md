@@ -4,7 +4,7 @@
 
 This project consists of a automated warehouse simulation with an autonomous mobile robot that handles `Orders` requests to get the required `Products` at the `Storages` available and deliver them in the right `Dispatch` area.
 
-> This project were developed to be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree program. I chose to develop this project in the mobile robotics context with everything I've learned from the Udacity Robotic Software Engineer Nanodegree program, which I had the chance to develop a home service robot simulation (repo [here](https://github.com/rodriguesrenato/rse-nd-home-service-robot)) that navigates autonomously between two goals pose.
+> This project was developed to be presented as the "Capstone Project" of Udacity C++ Engineer Nanodegree program. I chose to develop this project in the mobile robotics context with everything I've learned from the Udacity Robotic Software Engineer Nanodegree program, which I had the chance to develop a home service robot simulation (repo [here](https://github.com/rodriguesrenato/rse-nd-home-service-robot)) that navigates autonomously between two goals pose.
 
 # Dependencies
 
