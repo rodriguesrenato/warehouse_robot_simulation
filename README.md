@@ -40,13 +40,13 @@ git clone https://github.com/rodriguesrenato/warehouse_robot_simulation.git
 It is also possible to install the *required* and *optional* libraries along the current ros installation via **apt-get** (Make sure to adjust the following commands to you ROS version):
 
 ```
-sudo apt-get install ros-melodic-amcl
-sudo apt-get install ros-melodic-move-base
-sudo apt-get install ros-melodic-dwa-local-planner
-sudo apt-get install ros-melodic-map-server
-sudo apt-get install ros-melodic-teleop-twist-keyboard 
-sudo apt-get install ros-melodic-gmapping
-sudo apt-get install ros-melodic-slam-gmapping
+sudo apt-get install ros-noetic-amcl
+sudo apt-get install ros-noetic-move-base
+sudo apt-get install ros-noetic-dwa-local-planner
+sudo apt-get install ros-noetic-map-server
+sudo apt-get install ros-noetic-teleop-twist-keyboard 
+sudo apt-get install ros-noetic-gmapping
+sudo apt-get install ros-noetic-slam-gmapping
 ```
 
 - Note: If a different project directory was chosen, then you have to manually change the `projectDirectory` value in the `src/warehouseSimulation.cpp` file before build it. It was considered that ROS executes nodes in `~/.ros` to use relative paths.
